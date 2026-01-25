@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/programs/bbs_dialer.gd" id="1_bbs_dialer"]
+
+[node name="BBSDialer" type="Node"]
+script = ExtResource("1_bbs_dialer")

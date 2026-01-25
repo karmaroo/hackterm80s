@@ -1,0 +1,2589 @@
+[gd_scene load_steps=21 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/terminal.gd" id="2_terminal"]
+[ext_resource type="Shader" path="res://shaders/crt.gdshader" id="3_crt"]
+[ext_resource type="FontFile" path="res://assets/dos_font.ttf" id="4_font"]
+[ext_resource type="Shader" path="res://shaders/background.gdshader" id="5_bg"]
+[ext_resource type="Shader" path="res://shaders/desk.gdshader" id="6_desk"]
+[ext_resource type="Shader" path="res://shaders/lava_lamp.gdshader" id="7_lava"]
+[ext_resource type="Script" path="res://scripts/led_clock.gd" id="8_clock"]
+[ext_resource type="FontFile" path="res://assets/DSEG7Classic-Bold.ttf" id="9_clockfont"]
+[ext_resource type="Texture2D" path="res://assets/wargames-poster.jpg" id="10_poster"]
+[ext_resource type="Texture2D" path="res://assets/desk-phone-5551111.png" id="11_phone"]
+[ext_resource type="Script" path="res://scripts/lava_lamp.gd" id="12_lavalamp"]
+[ext_resource type="Script" path="res://scripts/phone_bulb_light.gd" id="13_bulblight"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_crt"]
+shader = ExtResource("3_crt")
+shader_parameter/scanline_intensity = 0.12
+shader_parameter/scanline_frequency = 400.0
+shader_parameter/curvature = 0.0
+shader_parameter/vignette_intensity = 0.15
+shader_parameter/chromatic_aberration = 0.0005
+shader_parameter/flicker_intensity = 0.003
+shader_parameter/noise_intensity = 0.01
+shader_parameter/brightness = 1.0
+shader_parameter/contrast = 1.05
+shader_parameter/phosphor_color = Vector3(0, 1, 0.4)
+shader_parameter/enable_phosphor_tint = false
+shader_parameter/glow_intensity = 0.05
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
+shader = ExtResource("5_bg")
+shader_parameter/color_top = Vector3(0.04, 0.035, 0.07)
+shader_parameter/color_mid = Vector3(0.09, 0.075, 0.13)
+shader_parameter/color_bottom = Vector3(0.14, 0.11, 0.18)
+shader_parameter/vignette_strength = 0.45
+shader_parameter/vignette_softness = 0.8
+shader_parameter/monitor_glow_color = Vector3(0.1, 0.25, 0.15)
+shader_parameter/monitor_glow_strength = 0.25
+shader_parameter/monitor_glow_center = Vector2(0.5, 0.38)
+shader_parameter/monitor_glow_radius = 0.45
+shader_parameter/ceiling_light_color = Vector3(0.25, 0.2, 0.15)
+shader_parameter/ceiling_light_strength = 0.08
+shader_parameter/noise_strength = 0.015
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_desk"]
+shader = ExtResource("6_desk")
+shader_parameter/wood_color_light = Vector3(0.55, 0.35, 0.2)
+shader_parameter/wood_color_dark = Vector3(0.38, 0.22, 0.12)
+shader_parameter/grain_scale = 15.0
+shader_parameter/grain_intensity = 0.3
+shader_parameter/highlight_strength = 0.15
+shader_parameter/light_position = Vector2(0.5, 0.0)
+shader_parameter/monitor_glow_color = Vector3(0.15, 0.35, 0.2)
+shader_parameter/monitor_glow_strength = 0.15
+shader_parameter/monitor_glow_pos = Vector2(0.5, 0.0)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lava"]
+shader = ExtResource("7_lava")
+shader_parameter/is_on = false
+shader_parameter/blob_speed = 0.15
+shader_parameter/blob_threshold = 1.0
+shader_parameter/temperature = 0.0
+shader_parameter/liquid_color = Color(0.02, 0.04, 0.03, 1)
+shader_parameter/blob_color_bottom = Color(0.2, 0.9, 0.4, 1)
+shader_parameter/blob_color_top = Color(0.3, 0.95, 0.85, 1)
+shader_parameter/chrome_light = Color(0.35, 0.35, 0.38, 1)
+shader_parameter/chrome_mid = Color(0.2, 0.2, 0.22, 1)
+shader_parameter/chrome_dark = Color(0.08, 0.08, 0.1, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_key"]
+bg_color = Color(0.22, 0.21, 0.2, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 2
+border_color = Color(0.12, 0.11, 0.1, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_key_dark"]
+bg_color = Color(0.18, 0.17, 0.16, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 2
+border_color = Color(0.1, 0.09, 0.08, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_powerbutton"]
+bg_color = Color(0.22, 0.21, 0.19, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 4
+border_color = Color(0.12, 0.11, 0.1, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="Gradient" id="Gradient_walllight"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_walllight"]
+gradient = SubResource("Gradient_walllight")
+width = 256
+height = 256
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1.0, 0.5)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_transparent"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lava_btn"]
+bg_color = Color(0.15, 0.15, 0.18, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 2
+border_color = Color(0.08, 0.08, 0.1, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main")
+
+[node name="Background" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_bg")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="AmbientDarkness" type="CanvasModulate" parent="."]
+color = Color(0.35, 0.35, 0.4, 1)
+
+[node name="Desk" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_desk")
+layout_mode = 0
+offset_top = 550.0
+offset_right = 1280.0
+offset_bottom = 720.0
+
+[node name="WoodShelf1" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -640.0
+offset_top = -220.0
+offset_right = -375.0
+offset_bottom = -202.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.35, 0.22, 0.12, 1)
+
+[node name="ShelfEdge1" type="ColorRect" parent="WoodShelf1"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 4.0
+color = Color(0.48, 0.32, 0.2, 1)
+
+[node name="ShelfBottom1" type="ColorRect" parent="WoodShelf1"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = 5.0
+color = Color(0.22, 0.13, 0.07, 1)
+
+[node name="WoodShelf2" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -640.0
+offset_top = -140.0
+offset_right = -375.0
+offset_bottom = -122.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.35, 0.22, 0.12, 1)
+
+[node name="ShelfEdge2" type="ColorRect" parent="WoodShelf2"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 4.0
+color = Color(0.48, 0.32, 0.2, 1)
+
+[node name="ShelfBottom2" type="ColorRect" parent="WoodShelf2"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = 5.0
+color = Color(0.22, 0.13, 0.07, 1)
+
+[node name="LEDClock" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -530.0
+offset_top = -180.0
+offset_right = -410.0
+offset_bottom = -145.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("8_clock")
+
+[node name="ClockBezel" type="ColorRect" parent="LEDClock"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.15, 0.15, 0.15, 1)
+
+[node name="ClockBody" type="ColorRect" parent="LEDClock"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 3.0
+offset_top = 3.0
+offset_right = -3.0
+offset_bottom = -3.0
+color = Color(0.05, 0.05, 0.05, 1)
+
+[node name="TimeLabel" type="RichTextLabel" parent="LEDClock"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 13.0
+offset_top = 5.0
+offset_right = -1.0
+offset_bottom = -1.0
+bbcode_enabled = true
+theme_override_colors/default_color = Color(1.0, 0.15, 0.1, 1)
+theme_override_fonts/normal_font = ExtResource("9_clockfont")
+theme_override_font_sizes/normal_font_size = 22
+text = "12:00"
+fit_content = true
+scroll_active = false
+
+[node name="LavaLamp" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_top = -120.0
+offset_right = -400.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("12_lavalamp")
+
+[node name="WallLight" type="PointLight2D" parent="LavaLamp"]
+position = Vector2(50, 100)
+enabled = false
+color = Color(0.3, 0.95, 0.5, 1)
+energy = 0.0
+texture = SubResource("GradientTexture2D_walllight")
+texture_scale = 2.0
+
+[node name="LampBody" type="ColorRect" parent="LavaLamp"]
+material = SubResource("ShaderMaterial_lava")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="PowerButton" type="Panel" parent="LavaLamp"]
+layout_mode = 0
+offset_left = 30.0
+offset_top = 290.0
+offset_right = 70.0
+offset_bottom = 310.0
+mouse_filter = 0
+mouse_default_cursor_shape = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_powerbutton")
+
+[node name="PowerLED" type="ColorRect" parent="LavaLamp"]
+layout_mode = 0
+offset_left = 42.0
+offset_top = 275.0
+offset_right = 58.0
+offset_bottom = 285.0
+mouse_filter = 2
+color = Color(0.02, 0.06, 0.03, 1)
+
+[node name="ComputerFrame" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Monitor" type="Control" parent="ComputerFrame"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -340.0
+offset_right = 300.0
+offset_bottom = 100.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MonitorLight" type="PointLight2D" parent="ComputerFrame/Monitor"]
+position = Vector2(300, 220)
+enabled = false
+color = Color(0.2, 0.95, 0.4, 1)
+energy = 2.5
+texture = SubResource("GradientTexture2D_walllight")
+texture_scale = 3.0
+
+[node name="MonitorBody" type="ColorRect" parent="ComputerFrame/Monitor"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.72, 0.66, 0.55, 1)
+
+[node name="MonitorTopEdge" type="ColorRect" parent="ComputerFrame/Monitor"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 5.0
+grow_horizontal = 2
+color = Color(0.82, 0.76, 0.64, 1)
+
+[node name="MonitorBottomEdge" type="ColorRect" parent="ComputerFrame/Monitor"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -5.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(0.58, 0.52, 0.42, 1)
+
+[node name="MonitorLeftEdge" type="ColorRect" parent="ComputerFrame/Monitor"]
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_right = 8.0
+grow_vertical = 2
+color = Color(0.68, 0.62, 0.52, 1)
+
+[node name="MonitorLeftHighlight" type="ColorRect" parent="ComputerFrame/Monitor"]
+layout_mode = 0
+offset_right = 3.0
+offset_bottom = 410.0
+color = Color(0.78, 0.72, 0.6, 1)
+
+[node name="MonitorRightEdge" type="ColorRect" parent="ComputerFrame/Monitor"]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -8.0
+grow_vertical = 2
+color = Color(0.62, 0.56, 0.46, 1)
+
+[node name="MonitorRightShadow" type="ColorRect" parent="ComputerFrame/Monitor"]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -3.0
+offset_right = 0.0
+color = Color(0.52, 0.46, 0.38, 1)
+
+[node name="TopVents" type="HBoxContainer" parent="ComputerFrame/Monitor"]
+layout_mode = 0
+offset_left = 70.0
+offset_top = 10.0
+offset_right = 530.0
+offset_bottom = 22.0
+theme_override_constants/separation = 6
+
+[node name="V1" type="ColorRect" parent="ComputerFrame/Monitor/TopVents"]
+custom_minimum_size = Vector2(40, 8)
+layout_mode = 2
+color = Color(0.55, 0.5, 0.42, 1)
+
+[node name="V2" type="ColorRect" parent="ComputerFrame/Monitor/TopVents"]
+custom_minimum_size = Vector2(40, 8)
+layout_mode = 2
+color = Color(0.55, 0.5, 0.42, 1)
+
+[node name="V3" type="ColorRect" parent="ComputerFrame/Monitor/TopVents"]
+custom_minimum_size = Vector2(40, 8)
+layout_mode = 2
+color = Color(0.55, 0.5, 0.42, 1)
+
+[node name="V4" type="ColorRect" parent="ComputerFrame/Monitor/TopVents"]
+custom_minimum_size = Vector2(40, 8)
+layout_mode = 2
+color = Color(0.55, 0.5, 0.42, 1)
+
+[node name="V5" type="ColorRect" parent="ComputerFrame/Monitor/TopVents"]
+custom_minimum_size = Vector2(40, 8)
+layout_mode = 2
+color = Color(0.55, 0.5, 0.42, 1)
+
+[node name="V6" type="ColorRect" parent="ComputerFrame/Monitor/TopVents"]
+custom_minimum_size = Vector2(40, 8)
+layout_mode = 2
+color = Color(0.55, 0.5, 0.42, 1)
+
+[node name="V7" type="ColorRect" parent="ComputerFrame/Monitor/TopVents"]
+custom_minimum_size = Vector2(40, 8)
+layout_mode = 2
+color = Color(0.55, 0.5, 0.42, 1)
+
+[node name="V8" type="ColorRect" parent="ComputerFrame/Monitor/TopVents"]
+custom_minimum_size = Vector2(40, 8)
+layout_mode = 2
+color = Color(0.55, 0.5, 0.42, 1)
+
+[node name="ScreenBezelOuter" type="ColorRect" parent="ComputerFrame/Monitor"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 25.0
+offset_top = 25.0
+offset_right = -25.0
+offset_bottom = -55.0
+color = Color(0.2, 0.18, 0.15, 1)
+
+[node name="ScreenBezelInner" type="ColorRect" parent="ComputerFrame/Monitor"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 32.0
+offset_top = 32.0
+offset_right = -32.0
+offset_bottom = -62.0
+color = Color(0.12, 0.11, 0.1, 1)
+
+[node name="ScreenArea" type="ColorRect" parent="ComputerFrame/Monitor"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 38.0
+offset_top = 38.0
+offset_right = -38.0
+offset_bottom = -68.0
+color = Color(0, 0.05, 0.02, 1)
+
+[node name="TerminalView" type="SubViewportContainer" parent="ComputerFrame/Monitor"]
+material = SubResource("ShaderMaterial_crt")
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_top = 40.0
+offset_right = -40.0
+offset_bottom = -70.0
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="ComputerFrame/Monitor/TerminalView"]
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(520, 340)
+render_target_update_mode = 4
+
+[node name="Terminal" type="Control" parent="ComputerFrame/Monitor/TerminalView/SubViewport"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("2_terminal")
+
+[node name="Background" type="ColorRect" parent="ComputerFrame/Monitor/TerminalView/SubViewport/Terminal"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0.04, 0.02, 1)
+
+[node name="Output" type="RichTextLabel" parent="ComputerFrame/Monitor/TerminalView/SubViewport/Terminal"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -25.0
+theme_override_colors/default_color = Color(0.3, 1, 0.5, 1)
+theme_override_fonts/normal_font = ExtResource("4_font")
+theme_override_font_sizes/normal_font_size = 14
+bbcode_enabled = true
+scroll_following = true
+
+
+[node name="ScreenOffOverlay" type="ColorRect" parent="ComputerFrame/Monitor"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 38.0
+offset_top = 38.0
+offset_right = -38.0
+offset_bottom = -68.0
+color = Color(0.015, 0.02, 0.015, 1)
+
+[node name="OffText" type="Label" parent="ComputerFrame/Monitor/ScreenOffOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -15.0
+offset_right = 150.0
+offset_bottom = 15.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.12, 0.12, 0.1, 1)
+theme_override_font_sizes/font_size = 12
+text = "[ Click POWER to start ]"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ControlPanel" type="Control" parent="ComputerFrame/Monitor"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -55.0
+offset_bottom = -5.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="PowerButton" type="Panel" parent="ComputerFrame/Monitor/ControlPanel"]
+layout_mode = 0
+offset_left = 15.0
+offset_top = 8.0
+offset_right = 55.0
+offset_bottom = 42.0
+mouse_filter = 0
+mouse_default_cursor_shape = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_powerbutton")
+
+[node name="PowerSymbol" type="Label" parent="ComputerFrame/Monitor/ControlPanel/PowerButton"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.45, 0.42, 0.38, 1)
+theme_override_font_sizes/font_size = 11
+text = "I/O"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PowerLED" type="ColorRect" parent="ComputerFrame/Monitor/ControlPanel"]
+layout_mode = 0
+offset_left = 65.0
+offset_top = 16.0
+offset_right = 80.0
+offset_bottom = 30.0
+color = Color(0.15, 0.85, 0.25, 1)
+
+[node name="Button1" type="ColorRect" parent="ComputerFrame/Monitor/ControlPanel"]
+layout_mode = 0
+offset_left = 95.0
+offset_top = 12.0
+offset_right = 120.0
+offset_bottom = 38.0
+color = Color(0.35, 0.32, 0.28, 1)
+
+[node name="Button2" type="ColorRect" parent="ComputerFrame/Monitor/ControlPanel"]
+layout_mode = 0
+offset_left = 130.0
+offset_top = 12.0
+offset_right = 155.0
+offset_bottom = 38.0
+color = Color(0.35, 0.32, 0.28, 1)
+
+[node name="Button3" type="ColorRect" parent="ComputerFrame/Monitor/ControlPanel"]
+layout_mode = 0
+offset_left = 165.0
+offset_top = 12.0
+offset_right = 190.0
+offset_bottom = 38.0
+color = Color(0.35, 0.32, 0.28, 1)
+
+[node name="BaseUnit" type="Control" parent="ComputerFrame"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -340.0
+offset_top = 100.0
+offset_right = 340.0
+offset_bottom = 220.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BaseBody" type="ColorRect" parent="ComputerFrame/BaseUnit"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.75, 0.68, 0.55, 1)
+
+[node name="BaseTopEdge" type="ColorRect" parent="ComputerFrame/BaseUnit"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 3.0
+grow_horizontal = 2
+color = Color(0.82, 0.75, 0.62, 1)
+
+[node name="BaseBottomEdge" type="ColorRect" parent="ComputerFrame/BaseUnit"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -4.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(0.55, 0.5, 0.4, 1)
+
+[node name="BaseLeftEdge" type="ColorRect" parent="ComputerFrame/BaseUnit"]
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_right = 3.0
+grow_vertical = 2
+color = Color(0.65, 0.58, 0.47, 1)
+
+[node name="BaseRightEdge" type="ColorRect" parent="ComputerFrame/BaseUnit"]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -3.0
+grow_vertical = 2
+color = Color(0.65, 0.58, 0.47, 1)
+
+[node name="FloppyBayA" type="Control" parent="ComputerFrame/BaseUnit"]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 10.0
+offset_right = 107.0
+offset_bottom = 70.0
+
+[node name="BayFrame" type="ColorRect" parent="ComputerFrame/BaseUnit/FloppyBayA"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.6, 0.55, 0.46, 1)
+
+[node name="BayInner" type="ColorRect" parent="ComputerFrame/BaseUnit/FloppyBayA"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = -2.0
+color = Color(0.72, 0.66, 0.55, 1)
+
+[node name="Slot" type="ColorRect" parent="ComputerFrame/BaseUnit/FloppyBayA"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 8.0
+offset_right = 88.0
+offset_bottom = 18.0
+color = Color(0.08, 0.07, 0.06, 1)
+
+[node name="DriveLED" type="ColorRect" parent="ComputerFrame/BaseUnit/FloppyBayA"]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 48.0
+offset_right = 16.0
+offset_bottom = 54.0
+color = Color(0.25, 0.08, 0.05, 1)
+
+[node name="DriveLabel" type="Label" parent="ComputerFrame/BaseUnit/FloppyBayA"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 44.0
+offset_right = 90.0
+offset_bottom = 58.0
+theme_override_colors/font_color = Color(0.45, 0.42, 0.36, 1)
+theme_override_font_sizes/font_size = 8
+text = "5.25\" A:"
+
+[node name="FloppyBayB" type="Control" parent="ComputerFrame/BaseUnit"]
+layout_mode = 0
+offset_left = 115.0
+offset_top = 10.0
+offset_right = 195.0
+offset_bottom = 70.0
+
+[node name="BayFrame" type="ColorRect" parent="ComputerFrame/BaseUnit/FloppyBayB"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.6, 0.55, 0.46, 1)
+
+[node name="BayInner" type="ColorRect" parent="ComputerFrame/BaseUnit/FloppyBayB"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = -2.0
+color = Color(0.72, 0.66, 0.55, 1)
+
+[node name="Slot" type="ColorRect" parent="ComputerFrame/BaseUnit/FloppyBayB"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 8.0
+offset_right = 72.0
+offset_bottom = 14.0
+color = Color(0.08, 0.07, 0.06, 1)
+
+[node name="DriveLED" type="ColorRect" parent="ComputerFrame/BaseUnit/FloppyBayB"]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 48.0
+offset_right = 16.0
+offset_bottom = 54.0
+color = Color(0.25, 0.08, 0.05, 1)
+
+[node name="DriveLabel" type="Label" parent="ComputerFrame/BaseUnit/FloppyBayB"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 44.0
+offset_right = 75.0
+offset_bottom = 58.0
+theme_override_colors/font_color = Color(0.45, 0.42, 0.36, 1)
+theme_override_font_sizes/font_size = 8
+text = "3.5\" B:"
+
+[node name="VentGrille" type="Control" parent="ComputerFrame/BaseUnit"]
+layout_mode = 0
+offset_left = 205.0
+offset_top = 10.0
+offset_right = 340.0
+offset_bottom = 70.0
+
+[node name="GrilleBG" type="ColorRect" parent="ComputerFrame/BaseUnit/VentGrille"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.25, 0.22, 0.18, 1)
+
+[node name="V1" type="ColorRect" parent="ComputerFrame/BaseUnit/VentGrille"]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 6.0
+offset_right = 130.0
+offset_bottom = 10.0
+color = Color(0.12, 0.1, 0.08, 1)
+
+[node name="V2" type="ColorRect" parent="ComputerFrame/BaseUnit/VentGrille"]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 14.0
+offset_right = 130.0
+offset_bottom = 18.0
+color = Color(0.12, 0.1, 0.08, 1)
+
+[node name="V3" type="ColorRect" parent="ComputerFrame/BaseUnit/VentGrille"]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 22.0
+offset_right = 130.0
+offset_bottom = 26.0
+color = Color(0.12, 0.1, 0.08, 1)
+
+[node name="V4" type="ColorRect" parent="ComputerFrame/BaseUnit/VentGrille"]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 30.0
+offset_right = 130.0
+offset_bottom = 34.0
+color = Color(0.12, 0.1, 0.08, 1)
+
+[node name="V5" type="ColorRect" parent="ComputerFrame/BaseUnit/VentGrille"]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 38.0
+offset_right = 130.0
+offset_bottom = 42.0
+color = Color(0.12, 0.1, 0.08, 1)
+
+[node name="V6" type="ColorRect" parent="ComputerFrame/BaseUnit/VentGrille"]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 46.0
+offset_right = 130.0
+offset_bottom = 50.0
+color = Color(0.12, 0.1, 0.08, 1)
+
+[node name="V7" type="ColorRect" parent="ComputerFrame/BaseUnit/VentGrille"]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 54.0
+offset_right = 130.0
+offset_bottom = 58.0
+color = Color(0.12, 0.1, 0.08, 1)
+
+[node name="TurboBtn" type="Control" parent="ComputerFrame/BaseUnit"]
+layout_mode = 0
+offset_left = 350.0
+offset_top = 14.0
+offset_right = 390.0
+offset_bottom = 66.0
+
+[node name="BtnBG" type="ColorRect" parent="ComputerFrame/BaseUnit/TurboBtn"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.65, 0.6, 0.5, 1)
+
+[node name="BtnFrame" type="ColorRect" parent="ComputerFrame/BaseUnit/TurboBtn"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 34.0
+offset_bottom = 30.0
+color = Color(0.5, 0.46, 0.38, 1)
+
+[node name="BtnInner" type="ColorRect" parent="ComputerFrame/BaseUnit/TurboBtn"]
+layout_mode = 0
+offset_left = 9.0
+offset_top = 9.0
+offset_right = 31.0
+offset_bottom = 27.0
+color = Color(0.42, 0.38, 0.32, 1)
+
+[node name="TurboLED" type="ColorRect" parent="ComputerFrame/BaseUnit/TurboBtn"]
+layout_mode = 0
+offset_left = 14.0
+offset_top = 34.0
+offset_right = 26.0
+offset_bottom = 40.0
+color = Color(0.9, 0.5, 0.1, 1)
+
+[node name="TurboLabel" type="Label" parent="ComputerFrame/BaseUnit/TurboBtn"]
+layout_mode = 0
+offset_left = 2.0
+offset_top = 42.0
+offset_right = 38.0
+offset_bottom = 52.0
+theme_override_colors/font_color = Color(0.45, 0.42, 0.36, 1)
+theme_override_font_sizes/font_size = 6
+text = "TURBO"
+horizontal_alignment = 1
+
+[node name="ResetBtn" type="Control" parent="ComputerFrame/BaseUnit"]
+layout_mode = 0
+offset_left = 395.0
+offset_top = 14.0
+offset_right = 435.0
+offset_bottom = 66.0
+
+[node name="BtnBG" type="ColorRect" parent="ComputerFrame/BaseUnit/ResetBtn"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.65, 0.6, 0.5, 1)
+
+[node name="BtnFrame" type="ColorRect" parent="ComputerFrame/BaseUnit/ResetBtn"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 34.0
+offset_bottom = 30.0
+color = Color(0.5, 0.46, 0.38, 1)
+
+[node name="BtnInner" type="ColorRect" parent="ComputerFrame/BaseUnit/ResetBtn"]
+layout_mode = 0
+offset_left = 9.0
+offset_top = 9.0
+offset_right = 31.0
+offset_bottom = 27.0
+color = Color(0.42, 0.38, 0.32, 1)
+
+[node name="ResetLabel" type="Label" parent="ComputerFrame/BaseUnit/ResetBtn"]
+layout_mode = 0
+offset_left = 2.0
+offset_top = 34.0
+offset_right = 38.0
+offset_bottom = 44.0
+theme_override_colors/font_color = Color(0.45, 0.42, 0.36, 1)
+theme_override_font_sizes/font_size = 6
+text = "RESET"
+horizontal_alignment = 1
+
+[node name="BrandPanel" type="Control" parent="ComputerFrame/BaseUnit"]
+layout_mode = 0
+offset_left = 445.0
+offset_top = 10.0
+offset_right = 590.0
+offset_bottom = 70.0
+
+[node name="PanelBG" type="ColorRect" parent="ComputerFrame/BaseUnit/BrandPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.65, 0.6, 0.5, 1)
+
+[node name="PanelInner" type="ColorRect" parent="ComputerFrame/BaseUnit/BrandPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 3.0
+offset_top = 3.0
+offset_right = -3.0
+offset_bottom = -3.0
+color = Color(0.72, 0.66, 0.55, 1)
+
+[node name="BrandName" type="Label" parent="ComputerFrame/BaseUnit/BrandPanel"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 10.0
+offset_right = 139.0
+offset_bottom = 28.0
+theme_override_colors/font_color = Color(0.3, 0.28, 0.24, 1)
+theme_override_font_sizes/font_size = 12
+text = "SHADOW"
+horizontal_alignment = 1
+
+[node name="SubBrand" type="Label" parent="ComputerFrame/BaseUnit/BrandPanel"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 26.0
+offset_right = 139.0
+offset_bottom = 40.0
+theme_override_colors/font_color = Color(0.4, 0.38, 0.34, 1)
+theme_override_font_sizes/font_size = 9
+text = "SYSTEMS"
+horizontal_alignment = 1
+
+[node name="ModelLabel" type="Label" parent="ComputerFrame/BaseUnit/BrandPanel"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 42.0
+offset_right = 139.0
+offset_bottom = 56.0
+theme_override_colors/font_color = Color(0.45, 0.42, 0.36, 1)
+theme_override_font_sizes/font_size = 7
+text = "ST-8088 TURBO"
+horizontal_alignment = 1
+
+[node name="LEDPanel" type="Control" parent="ComputerFrame/BaseUnit"]
+layout_mode = 0
+offset_left = 600.0
+offset_top = 10.0
+offset_right = 660.0
+offset_bottom = 70.0
+
+[node name="PanelBG" type="ColorRect" parent="ComputerFrame/BaseUnit/LEDPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.65, 0.6, 0.5, 1)
+
+[node name="PowerLED" type="ColorRect" parent="ComputerFrame/BaseUnit/LEDPanel"]
+layout_mode = 0
+offset_left = 22.0
+offset_top = 10.0
+offset_right = 38.0
+offset_bottom = 22.0
+color = Color(0.15, 0.85, 0.25, 1)
+
+[node name="PowerLabel" type="Label" parent="ComputerFrame/BaseUnit/LEDPanel"]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 24.0
+offset_right = 52.0
+offset_bottom = 34.0
+theme_override_colors/font_color = Color(0.45, 0.42, 0.36, 1)
+theme_override_font_sizes/font_size = 6
+text = "POWER"
+horizontal_alignment = 1
+
+[node name="HDDLED" type="ColorRect" parent="ComputerFrame/BaseUnit/LEDPanel"]
+layout_mode = 0
+offset_left = 22.0
+offset_top = 40.0
+offset_right = 38.0
+offset_bottom = 52.0
+color = Color(0.25, 0.08, 0.05, 1)
+
+[node name="HDDLabel" type="Label" parent="ComputerFrame/BaseUnit/LEDPanel"]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 54.0
+offset_right = 52.0
+offset_bottom = 64.0
+theme_override_colors/font_color = Color(0.45, 0.42, 0.36, 1)
+theme_override_font_sizes/font_size = 6
+text = "HDD"
+horizontal_alignment = 1
+
+[node name="Keyboard" type="Control" parent="ComputerFrame"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = 200.0
+offset_right = 300.0
+offset_bottom = 330.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="KeyboardBase" type="ColorRect" parent="ComputerFrame/Keyboard"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.75, 0.69, 0.58, 1)
+
+[node name="KeyboardTopEdge" type="ColorRect" parent="ComputerFrame/Keyboard"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 3.0
+grow_horizontal = 2
+color = Color(0.85, 0.79, 0.68, 1)
+
+[node name="KeyboardBottomEdge" type="ColorRect" parent="ComputerFrame/Keyboard"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -3.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(0.55, 0.5, 0.42, 1)
+
+[node name="KeyWell" type="ColorRect" parent="ComputerFrame/Keyboard"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+color = Color(0.22, 0.2, 0.17, 1)
+
+[node name="FunctionKeys" type="HBoxContainer" parent="ComputerFrame/Keyboard"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+offset_left = 14.0
+offset_top = 11.0
+offset_right = -14.0
+offset_bottom = 24.0
+theme_override_constants/separation = 2
+
+[node name="Esc" type="Panel" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(26, 13)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key_dark")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/FunctionKeys/Esc"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "ESC"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="S1" type="Control" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(8, 0)
+layout_mode = 2
+
+[node name="F1" type="Panel" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(24, 13)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/FunctionKeys/F1"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "F1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="F2" type="Panel" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(24, 13)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/FunctionKeys/F2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "F2"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="F3" type="Panel" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(24, 13)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/FunctionKeys/F3"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "F3"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="F4" type="Panel" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(24, 13)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/FunctionKeys/F4"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "F4"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="S2" type="Control" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(6, 0)
+layout_mode = 2
+
+[node name="F5" type="Panel" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(24, 13)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/FunctionKeys/F5"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "F5"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="F6" type="Panel" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(24, 13)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/FunctionKeys/F6"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "F6"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="F7" type="Panel" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(24, 13)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/FunctionKeys/F7"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "F7"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="F8" type="Panel" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(24, 13)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/FunctionKeys/F8"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "F8"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="S3" type="Control" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(6, 0)
+layout_mode = 2
+
+[node name="F9" type="Panel" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(24, 13)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/FunctionKeys/F9"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "F9"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="F10" type="Panel" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(24, 13)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/FunctionKeys/F10"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "F10"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="F11" type="Panel" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(24, 13)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/FunctionKeys/F11"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "F11"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="F12" type="Panel" parent="ComputerFrame/Keyboard/FunctionKeys"]
+custom_minimum_size = Vector2(24, 13)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/FunctionKeys/F12"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "F12"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NumberRow" type="HBoxContainer" parent="ComputerFrame/Keyboard"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+offset_left = 14.0
+offset_top = 27.0
+offset_right = -14.0
+offset_bottom = 42.0
+theme_override_constants/separation = 2
+
+[node name="K" type="Panel" parent="ComputerFrame/Keyboard/NumberRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/NumberRow/K"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "~"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="K1" type="Panel" parent="ComputerFrame/Keyboard/NumberRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/NumberRow/K1"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="K2" type="Panel" parent="ComputerFrame/Keyboard/NumberRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/NumberRow/K2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "2"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="K3" type="Panel" parent="ComputerFrame/Keyboard/NumberRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/NumberRow/K3"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "3"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="K4" type="Panel" parent="ComputerFrame/Keyboard/NumberRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/NumberRow/K4"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "4"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="K5" type="Panel" parent="ComputerFrame/Keyboard/NumberRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/NumberRow/K5"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "5"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="K6" type="Panel" parent="ComputerFrame/Keyboard/NumberRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/NumberRow/K6"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "6"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="K7" type="Panel" parent="ComputerFrame/Keyboard/NumberRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/NumberRow/K7"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "7"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="K8" type="Panel" parent="ComputerFrame/Keyboard/NumberRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/NumberRow/K8"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "8"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="K9" type="Panel" parent="ComputerFrame/Keyboard/NumberRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/NumberRow/K9"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "9"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="K0" type="Panel" parent="ComputerFrame/Keyboard/NumberRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/NumberRow/K0"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="KM" type="Panel" parent="ComputerFrame/Keyboard/NumberRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/NumberRow/KM"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "-"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="KE" type="Panel" parent="ComputerFrame/Keyboard/NumberRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/NumberRow/KE"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "="
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Bksp" type="Panel" parent="ComputerFrame/Keyboard/NumberRow"]
+custom_minimum_size = Vector2(50, 15)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key_dark")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/NumberRow/Bksp"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "BKSP"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="QWERTYRow" type="HBoxContainer" parent="ComputerFrame/Keyboard"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+offset_left = 14.0
+offset_top = 44.0
+offset_right = -14.0
+offset_bottom = 59.0
+theme_override_constants/separation = 2
+
+[node name="Tab" type="Panel" parent="ComputerFrame/Keyboard/QWERTYRow"]
+custom_minimum_size = Vector2(38, 15)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key_dark")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/QWERTYRow/Tab"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "TAB"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Q" type="Panel" parent="ComputerFrame/Keyboard/QWERTYRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/QWERTYRow/Q"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "Q"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="W" type="Panel" parent="ComputerFrame/Keyboard/QWERTYRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/QWERTYRow/W"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "W"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="E" type="Panel" parent="ComputerFrame/Keyboard/QWERTYRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/QWERTYRow/E"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "E"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="R" type="Panel" parent="ComputerFrame/Keyboard/QWERTYRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/QWERTYRow/R"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "R"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="T" type="Panel" parent="ComputerFrame/Keyboard/QWERTYRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/QWERTYRow/T"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "T"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Y" type="Panel" parent="ComputerFrame/Keyboard/QWERTYRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/QWERTYRow/Y"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "Y"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="U" type="Panel" parent="ComputerFrame/Keyboard/QWERTYRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/QWERTYRow/U"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "U"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="I" type="Panel" parent="ComputerFrame/Keyboard/QWERTYRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/QWERTYRow/I"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "I"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="O" type="Panel" parent="ComputerFrame/Keyboard/QWERTYRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/QWERTYRow/O"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "O"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="P" type="Panel" parent="ComputerFrame/Keyboard/QWERTYRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/QWERTYRow/P"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "P"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LB" type="Panel" parent="ComputerFrame/Keyboard/QWERTYRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/QWERTYRow/LB"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "["
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RB" type="Panel" parent="ComputerFrame/Keyboard/QWERTYRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/QWERTYRow/RB"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "]"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BS" type="Panel" parent="ComputerFrame/Keyboard/QWERTYRow"]
+custom_minimum_size = Vector2(36, 15)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/QWERTYRow/BS"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "\\"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ASDFRow" type="HBoxContainer" parent="ComputerFrame/Keyboard"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+offset_left = 14.0
+offset_top = 61.0
+offset_right = -14.0
+offset_bottom = 76.0
+theme_override_constants/separation = 2
+
+[node name="Caps" type="Panel" parent="ComputerFrame/Keyboard/ASDFRow"]
+custom_minimum_size = Vector2(44, 15)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key_dark")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ASDFRow/Caps"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "CAPS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="A" type="Panel" parent="ComputerFrame/Keyboard/ASDFRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ASDFRow/A"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "A"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="S" type="Panel" parent="ComputerFrame/Keyboard/ASDFRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ASDFRow/S"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "S"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="D" type="Panel" parent="ComputerFrame/Keyboard/ASDFRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ASDFRow/D"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "D"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="F" type="Panel" parent="ComputerFrame/Keyboard/ASDFRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ASDFRow/F"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "F"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="G" type="Panel" parent="ComputerFrame/Keyboard/ASDFRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ASDFRow/G"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "G"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="H" type="Panel" parent="ComputerFrame/Keyboard/ASDFRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ASDFRow/H"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "H"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="J" type="Panel" parent="ComputerFrame/Keyboard/ASDFRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ASDFRow/J"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "J"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="K2" type="Panel" parent="ComputerFrame/Keyboard/ASDFRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ASDFRow/K2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "K"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="L2" type="Panel" parent="ComputerFrame/Keyboard/ASDFRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ASDFRow/L2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "L"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SC" type="Panel" parent="ComputerFrame/Keyboard/ASDFRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ASDFRow/SC"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = ";"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="QT" type="Panel" parent="ComputerFrame/Keyboard/ASDFRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ASDFRow/QT"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "'"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Enter" type="Panel" parent="ComputerFrame/Keyboard/ASDFRow"]
+custom_minimum_size = Vector2(58, 15)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key_dark")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ASDFRow/Enter"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "ENTER"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ZXCVRow" type="HBoxContainer" parent="ComputerFrame/Keyboard"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+offset_left = 14.0
+offset_top = 78.0
+offset_right = -14.0
+offset_bottom = 93.0
+theme_override_constants/separation = 2
+
+[node name="ShiftL" type="Panel" parent="ComputerFrame/Keyboard/ZXCVRow"]
+custom_minimum_size = Vector2(54, 15)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key_dark")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ZXCVRow/ShiftL"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "SHIFT"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Z" type="Panel" parent="ComputerFrame/Keyboard/ZXCVRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ZXCVRow/Z"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "Z"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="X" type="Panel" parent="ComputerFrame/Keyboard/ZXCVRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ZXCVRow/X"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "X"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="C" type="Panel" parent="ComputerFrame/Keyboard/ZXCVRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ZXCVRow/C"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "C"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="V" type="Panel" parent="ComputerFrame/Keyboard/ZXCVRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ZXCVRow/V"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "V"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="B" type="Panel" parent="ComputerFrame/Keyboard/ZXCVRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ZXCVRow/B"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "B"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="N" type="Panel" parent="ComputerFrame/Keyboard/ZXCVRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ZXCVRow/N"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "N"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="M" type="Panel" parent="ComputerFrame/Keyboard/ZXCVRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ZXCVRow/M"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "M"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CM" type="Panel" parent="ComputerFrame/Keyboard/ZXCVRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ZXCVRow/CM"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = ","
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DT" type="Panel" parent="ComputerFrame/Keyboard/ZXCVRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ZXCVRow/DT"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "."
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SL" type="Panel" parent="ComputerFrame/Keyboard/ZXCVRow"]
+custom_minimum_size = Vector2(26, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ZXCVRow/SL"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 8
+text = "/"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ShiftR" type="Panel" parent="ComputerFrame/Keyboard/ZXCVRow"]
+custom_minimum_size = Vector2(68, 15)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key_dark")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/ZXCVRow/ShiftR"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "SHIFT"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SpaceRow" type="HBoxContainer" parent="ComputerFrame/Keyboard"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+offset_left = 14.0
+offset_top = 95.0
+offset_right = -14.0
+offset_bottom = 110.0
+theme_override_constants/separation = 2
+
+[node name="Ctrl" type="Panel" parent="ComputerFrame/Keyboard/SpaceRow"]
+custom_minimum_size = Vector2(38, 15)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key_dark")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/SpaceRow/Ctrl"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "CTRL"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AltL" type="Panel" parent="ComputerFrame/Keyboard/SpaceRow"]
+custom_minimum_size = Vector2(38, 15)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key_dark")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/SpaceRow/AltL"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "ALT"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Space" type="Panel" parent="ComputerFrame/Keyboard/SpaceRow"]
+custom_minimum_size = Vector2(280, 15)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_key")
+
+[node name="AltR" type="Panel" parent="ComputerFrame/Keyboard/SpaceRow"]
+custom_minimum_size = Vector2(38, 15)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key_dark")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/SpaceRow/AltR"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "ALT"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CtrlR" type="Panel" parent="ComputerFrame/Keyboard/SpaceRow"]
+custom_minimum_size = Vector2(38, 15)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key_dark")
+
+[node name="L" type="Label" parent="ComputerFrame/Keyboard/SpaceRow/CtrlR"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.5, 0.47, 0.42, 1)
+theme_override_font_sizes/font_size = 6
+text = "CTRL"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="WargamesPoster" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 380.0
+offset_top = -250.0
+offset_right = 540.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("10_poster")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DeskPhone" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 340.0
+offset_top = -70.0
+offset_right = 580.0
+offset_bottom = 110.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("11_phone")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="BulbLight" type="PointLight2D" parent="DeskPhone"]
+position = Vector2(120, 25)
+color = Color(1, 0.2, 0.1, 1)
+energy = 1.5
+texture = SubResource("GradientTexture2D_walllight")
+texture_scale = 1.5
+script = ExtResource("13_bulblight")
+is_on = true
+pulse_speed = 3.0
+min_energy = 1.5
+max_energy = 3.0
+
+[node name="HayesModem" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 370.0
+offset_top = 110.0
+offset_right = 570.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Shadow" type="ColorRect" parent="HayesModem"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 4.0
+offset_bottom = 4.0
+color = Color(0.02, 0.015, 0.03, 0.6)
+
+[node name="Body" type="Control" parent="HayesModem"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="TopCase" type="ColorRect" parent="HayesModem/Body"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 0.6
+color = Color(0.75, 0.72, 0.68, 1)
+
+[node name="TopVents" type="ColorRect" parent="HayesModem/Body/TopCase"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 5.0
+offset_right = 200.0
+offset_bottom = 35.0
+color = Color(0.65, 0.62, 0.58, 1)
+
+[node name="VentLine1" type="ColorRect" parent="HayesModem/Body/TopCase/TopVents"]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 185.0
+offset_bottom = 7.0
+color = Color(0.45, 0.42, 0.38, 1)
+
+[node name="VentLine2" type="ColorRect" parent="HayesModem/Body/TopCase/TopVents"]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 11.0
+offset_right = 185.0
+offset_bottom = 13.0
+color = Color(0.45, 0.42, 0.38, 1)
+
+[node name="VentLine3" type="ColorRect" parent="HayesModem/Body/TopCase/TopVents"]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 17.0
+offset_right = 185.0
+offset_bottom = 19.0
+color = Color(0.45, 0.42, 0.38, 1)
+
+[node name="VentLine4" type="ColorRect" parent="HayesModem/Body/TopCase/TopVents"]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 23.0
+offset_right = 185.0
+offset_bottom = 25.0
+color = Color(0.45, 0.42, 0.38, 1)
+
+[node name="FrontPanel" type="ColorRect" parent="HayesModem/Body"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 0.6
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(0.08, 0.08, 0.08, 1)
+
+[node name="FrontPanelBorder" type="ColorRect" parent="HayesModem/Body/FrontPanel"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 1.0
+grow_horizontal = 2
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="BrandLabel" type="Label" parent="HayesModem/Body/FrontPanel"]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 2.0
+offset_right = 120.0
+offset_bottom = 26.0
+theme_override_colors/font_color = Color(0.7, 0.68, 0.65, 1)
+theme_override_font_sizes/font_size = 8
+text = "SMARTMODEM 1200
+Hayes"
+
+[node name="LEDPanel" type="HBoxContainer" parent="HayesModem/Body"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 0.6
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 90.0
+offset_top = 4.0
+offset_right = -5.0
+offset_bottom = -3.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 6
+
+[node name="LED_HS" type="ColorRect" parent="HayesModem/Body/LEDPanel"]
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0.15, 0.05, 0.05, 1)
+
+[node name="LED_AA" type="ColorRect" parent="HayesModem/Body/LEDPanel"]
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0.15, 0.05, 0.05, 1)
+
+[node name="LED_CD" type="ColorRect" parent="HayesModem/Body/LEDPanel"]
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0.15, 0.05, 0.05, 1)
+
+[node name="LED_OH" type="ColorRect" parent="HayesModem/Body/LEDPanel"]
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0.15, 0.05, 0.05, 1)
+
+[node name="LED_RD" type="ColorRect" parent="HayesModem/Body/LEDPanel"]
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0.15, 0.05, 0.05, 1)
+
+[node name="LED_SD" type="ColorRect" parent="HayesModem/Body/LEDPanel"]
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0.15, 0.05, 0.05, 1)
+
+[node name="LED_TR" type="ColorRect" parent="HayesModem/Body/LEDPanel"]
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0.15, 0.65, 0.2, 1)
+
+[node name="LED_MR" type="ColorRect" parent="HayesModem/Body/LEDPanel"]
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0.15, 0.65, 0.2, 1)
+
+[node name="AudioPlayers" type="Node" parent="."]
+
+[node name="KeyboardClick" type="AudioStreamPlayer" parent="AudioPlayers"]
+volume_db = -10.0
+
+[node name="FloppyInsert" type="AudioStreamPlayer" parent="AudioPlayers"]
+volume_db = -5.0
+
+[node name="FloppyRead" type="AudioStreamPlayer" parent="AudioPlayers"]
+volume_db = -5.0
+
+[node name="FloppyEject" type="AudioStreamPlayer" parent="AudioPlayers"]
+volume_db = -5.0
+
+[node name="HDDStartup" type="AudioStreamPlayer" parent="AudioPlayers"]
+volume_db = -3.0

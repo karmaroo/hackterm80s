@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  godot-editor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hackterm80s-editor
+    volumes:
+      # Mount project files
+      - ./game:/game
+      # X11 socket for display
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # Sound (optional)
+      - /run/user/1000/pulse:/run/user/1000/pulse
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+    # GPU access for rendering
+    devices:
+      - /dev/dri:/dev/dri
+    network_mode: host
+    stdin_open: true
+    tty: true
+
+  # Headless build service for CI/exports
+  godot-build:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hackterm80s-build
+    volumes:
+      - ./game:/game
+      - ./builds:/builds
+    command: >
+      sh -c "
+        godot --headless --path /game --export-release 'Linux' /builds/hackterm80s-linux &&
+        godot --headless --path /game --export-release 'Windows Desktop' /builds/hackterm80s.exe &&
+        godot --headless --path /game --export-release 'HTML5' /builds/web/index.html &&
+        echo 'Build complete!'
+      "
+    profiles:
+      - build
+
+  # Run the game directly (no editor)
+  godot-run:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hackterm80s-run
+    volumes:
+      - ./game:/game
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+    devices:
+      - /dev/dri:/dev/dri
+    network_mode: host
+    command: ["godot", "--path", "/game"]
+    profiles:
+      - run
+
+  # ========================================
+  # MULTIPLAYER SERVICES
+  # ========================================
+
+  # Game web server (nginx serving Godot HTML5 export)
+  hackterm-web:
+    build:
+      context: ./builds/web
+      dockerfile: Dockerfile
+    container_name: hackterm80s-web
+    ports:
+      - "9080:80"
+    depends_on:
+      - hackterm-api
+    networks:
+      - hackterm-network
+    restart: unless-stopped
+    profiles:
+      - multiplayer
+
+  # Backend API server (Node.js/Express)
+  hackterm-api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: hackterm80s-api
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./server/db:/app/db
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_PATH=/app/db/hackterm.db
+    networks:
+      - hackterm-network
+    restart: unless-stopped
+    profiles:
+      - multiplayer
+
+networks:
+  hackterm-network:
+    driver: bridge
