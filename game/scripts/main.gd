@@ -141,15 +141,20 @@ func _toggle_power() -> void:
 	match computer_state:
 		ComputerState.OFF:
 			print("[Main] Turning ON...")
+			_boot_aborted = false
 			computer_state = ComputerState.BOOTING
 			_update_power_state()
 			_start_boot_sequence()
-		ComputerState.ON:
+		ComputerState.ON, ComputerState.BOOTING:
 			print("[Main] Turning OFF...")
+			_boot_aborted = true  # Signal boot sequence to abort
+			_awaiting_registration = false  # Cancel any registration input
 			computer_state = ComputerState.OFF
+			_stop_all_audio()
 			_update_power_state()
-		_:
-			print("[Main] Unknown state or BOOTING, ignoring")
+			# Clear terminal if it exists
+			if terminal:
+				terminal.clear_screen()
 
 
 func _update_power_state() -> void:
@@ -201,6 +206,9 @@ var _awaiting_registration: bool = false
 var _registration_input: String = ""
 var _registration_complete_signal: Signal
 
+# Boot sequence abort flag
+var _boot_aborted: bool = false
+
 func _start_boot_sequence() -> void:
 	# Play HDD startup sound
 	if hdd_startup and hdd_startup.stream:
@@ -220,6 +228,7 @@ func _start_boot_sequence() -> void:
 
 	# Initial POST delay - cursor blinking in top left corner
 	await get_tree().create_timer(5.0).timeout
+	if _boot_aborted: return
 
 	# Flash HDD LED during boot
 	if hdd_led:
@@ -227,83 +236,127 @@ func _start_boot_sequence() -> void:
 
 	# BIOS header with slower typing
 	await _boot_print_slow("SHADOW SYSTEMS BIOS v2.1")
+	if _boot_aborted: return
 	await get_tree().create_timer(0.3).timeout
+	if _boot_aborted: return
 	await _boot_print_slow("Copyright (C) 1983 Shadow Systems Inc.")
+	if _boot_aborted: return
 	await _boot_print("")
 	await get_tree().create_timer(0.8).timeout
-	
+	if _boot_aborted: return
+
 	# CPU detection - realistic delay
 	await _boot_print_slow("Detecting CPU...")
+	if _boot_aborted: return
 	await get_tree().create_timer(0.5).timeout
+	if _boot_aborted: return
 	await _boot_print_slow("Intel 8088 @ 4.77 MHz")
+	if _boot_aborted: return
 	await get_tree().create_timer(0.6).timeout
+	if _boot_aborted: return
 	await _boot_print_slow("CPU Test: PASSED")
+	if _boot_aborted: return
 	await get_tree().create_timer(0.4).timeout
-	
+	if _boot_aborted: return
+
 	# Memory test with realistic counting display (overwrites previous value)
 	await _boot_print("")
+	if _boot_aborted: return
 	if terminal:
 		var base_text = terminal._output_text + "Testing Memory: "
 		for kb in [64, 128, 192, 256, 320, 384, 448, 512, 576, 640]:
+			if _boot_aborted: return
 			terminal._output_text = base_text + str(kb) + "K"
 			terminal._update_display()
 			await get_tree().create_timer(0.10).timeout
+		if _boot_aborted: return
 		terminal._output_text = base_text + "640K OK"
 		terminal._update_display()
 		terminal.print_line("")
-	
+
 	await get_tree().create_timer(0.4).timeout
-	
+	if _boot_aborted: return
+
 	# Memory totals
 	await _boot_print("")
+	if _boot_aborted: return
 	await _boot_print_slow("Base Memory:  640K")
+	if _boot_aborted: return
 	await _boot_print_slow("Ext. Memory:    0K")
+	if _boot_aborted: return
 	await get_tree().create_timer(0.6).timeout
-	
+	if _boot_aborted: return
+
 	# Hardware detection - one at a time with realistic delays
 	await _boot_print("")
+	if _boot_aborted: return
 	await _boot_print_slow("Detecting Hardware...")
+	if _boot_aborted: return
 	await get_tree().create_timer(0.5).timeout
-	
+	if _boot_aborted: return
+
 	await _boot_print_slow("  Floppy Drive A: 5.25\" 360K")
+	if _boot_aborted: return
 	await get_tree().create_timer(0.3).timeout
+	if _boot_aborted: return
 	await _boot_print_slow("  Floppy Drive B: 3.5\" 720K")
+	if _boot_aborted: return
 	await get_tree().create_timer(0.3).timeout
-	
+	if _boot_aborted: return
+
 	# HDD detection with head seek sound
 	if terminal:
 		for c in "  Hard Disk C:    ":
+			if _boot_aborted: return
 			terminal.print_text(c)
 			await get_tree().create_timer(0.02).timeout
+	if _boot_aborted: return
 	await get_tree().create_timer(0.4).timeout
+	if _boot_aborted: return
 	await _boot_print("20MB")
+	if _boot_aborted: return
 	await get_tree().create_timer(0.3).timeout
-	
+	if _boot_aborted: return
+
 	await _boot_print_slow("  Serial Port:    COM1 - 2400 BAUD MODEM")
+	if _boot_aborted: return
 	await get_tree().create_timer(0.3).timeout
+	if _boot_aborted: return
 	await _boot_print_slow("  Video:          CGA Monochrome")
+	if _boot_aborted: return
 	await get_tree().create_timer(0.6).timeout
-	
+	if _boot_aborted: return
+
 	# Modem initialization
 	await _boot_print("")
+	if _boot_aborted: return
 	await _boot_print_slow("Initializing Modem...")
+	if _boot_aborted: return
 	await get_tree().create_timer(0.4).timeout
+	if _boot_aborted: return
 	await _boot_print_slow("  ATZ OK")
+	if _boot_aborted: return
 	await get_tree().create_timer(0.2).timeout
+	if _boot_aborted: return
 	await _boot_print_slow("  ATE1V1 OK")
+	if _boot_aborted: return
 	await get_tree().create_timer(0.3).timeout
+	if _boot_aborted: return
 
 	# Boot complete
 	await _boot_print("")
+	if _boot_aborted: return
 	await _boot_print("Starting SHADOW-DOS...")
+	if _boot_aborted: return
 	await get_tree().create_timer(0.5).timeout
-	
+	if _boot_aborted: return
+
 	if hdd_led:
 		hdd_led.color = LED_OFF
-	
+
 	computer_state = ComputerState.ON
 	_update_power_state()
-	
+
 	# Clear and show DOS prompt
 	if terminal:
 		terminal.clear_screen()
@@ -321,8 +374,10 @@ func _boot_print_slow(text: String) -> void:
 	"""Print text character by character for realistic BIOS output"""
 	if terminal and terminal.has_method("print_text"):
 		for c in text:
+			if _boot_aborted: return
 			terminal.print_text(c)
 			await get_tree().create_timer(0.02).timeout
+		if _boot_aborted: return
 		terminal.print_line("")
 	await get_tree().create_timer(0.05).timeout
 
@@ -520,6 +575,20 @@ func _reset_modem_leds() -> void:
 	if led_mr: led_mr.color = LED_OFF
 
 
+func _stop_all_audio() -> void:
+	# Stop all audio players immediately
+	if keyboard_click and keyboard_click.playing:
+		keyboard_click.stop()
+	if floppy_insert and floppy_insert.playing:
+		floppy_insert.stop()
+	if floppy_read and floppy_read.playing:
+		floppy_read.stop()
+	if floppy_eject and floppy_eject.playing:
+		floppy_eject.stop()
+	if hdd_startup and hdd_startup.playing:
+		hdd_startup.stop()
+
+
 func _set_modem_ready_leds() -> void:
 	# MR (Modem Ready) and TR (Terminal Ready) light when computer is on
 	if led_mr: led_mr.color = LED_GREEN
@@ -527,32 +596,26 @@ func _set_modem_ready_leds() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	# Debug: log that _input is being called
-	if event is InputEventKey and event.pressed and not event.is_echo():
-		var msg = "[Main] KEY: %d (%s)" % [event.keycode, OS.get_keycode_string(event.keycode)]
-		print(msg)
-		push_error(msg)  # This shows as red in console
+	if event is InputEventKey and not event.is_echo():
+		# Animate keyboard on key press AND release (ignore key repeat)
+		_animate_key(event.keycode, event.pressed)
 
-		# Animate keyboard on key press/release (ignore key repeat)
-		if not event.is_echo():
-			_animate_key(event.keycode, event.pressed)
-
-		# Keyboard click sound on press (not repeat)
-		if event.pressed and not event.is_echo():
+		# Only process these on key press, not release
+		if event.pressed:
+			# Keyboard click sound on press
 			if keyboard_click and keyboard_click.stream:
 				keyboard_click.play()
 
-		# Handle registration input during boot
-		if event.pressed and not event.is_echo() and _awaiting_registration:
-			_handle_registration_key(event)
-			return
+			# Handle registration input during boot
+			if _awaiting_registration:
+				_handle_registration_key(event)
+				return
 
-		# Forward keyboard input to terminal when computer is on
-		if event.pressed and computer_state == ComputerState.ON and terminal:
-			_forward_key_to_terminal(event)
-		
-		# F11 to toggle fullscreen
-		if event.pressed:
+			# Forward keyboard input to terminal when computer is on
+			if computer_state == ComputerState.ON and terminal:
+				_forward_key_to_terminal(event)
+
+			# F11 to toggle fullscreen
 			if event.keycode == KEY_F11:
 				if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
 					DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
@@ -570,8 +633,21 @@ func _input(event: InputEvent) -> void:
 func _forward_key_to_terminal(event: InputEventKey) -> void:
 	if not terminal:
 		return
-	
-	# Handle special keys
+
+	# Check if a program is running that wants to handle keys directly
+	if terminal.current_program and terminal.current_program.has_method("handle_key"):
+		var shift = event.shift_pressed
+		var ctrl = event.ctrl_pressed
+		var handled = terminal.current_program.handle_key(event.keycode, shift, ctrl)
+		if handled:
+			return
+		# If not handled, check for character input
+		if terminal.current_program.has_method("handle_char"):
+			if event.unicode >= 32 and event.unicode < 127:
+				terminal.current_program.handle_char(char(event.unicode))
+				return
+
+	# Handle special keys for terminal
 	match event.keycode:
 		KEY_ENTER, KEY_KP_ENTER:
 			terminal.handle_enter()

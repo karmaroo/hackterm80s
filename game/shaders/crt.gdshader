@@ -1,92 +1,98 @@
 shader_type canvas_item;
 
 // CRT Monitor Effect Shader for HackTerm80s
-// Creates authentic 80s CRT look with scanlines, curvature, and phosphor glow
+// Authentic green phosphor CRT with realistic glow
 
-// Adjustable parameters
-uniform float scanline_intensity : hint_range(0.0, 1.0) = 0.3;
+// Screen effects
+uniform float scanline_intensity : hint_range(0.0, 1.0) = 0.15;
 uniform float scanline_frequency : hint_range(100.0, 800.0) = 400.0;
-uniform float curvature : hint_range(0.0, 0.5) = 0.1;
-uniform float vignette_intensity : hint_range(0.0, 1.0) = 0.4;
-uniform float chromatic_aberration : hint_range(0.0, 0.01) = 0.002;
-uniform float flicker_intensity : hint_range(0.0, 0.1) = 0.02;
-uniform float noise_intensity : hint_range(0.0, 0.2) = 0.05;
-uniform float brightness : hint_range(0.5, 2.0) = 1.1;
-uniform float contrast : hint_range(0.5, 2.0) = 1.1;
-uniform vec3 phosphor_color : source_color = vec3(0.0, 1.0, 0.4); // Green phosphor
-uniform bool enable_phosphor_tint = true;
-uniform float glow_intensity : hint_range(0.0, 1.0) = 0.15;
+uniform float chromatic_aberration : hint_range(0.0, 0.01) = 0.0005;
+uniform float flicker_intensity : hint_range(0.0, 0.1) = 0.005;
+uniform float noise_intensity : hint_range(0.0, 0.2) = 0.02;
+
+// Display settings
+uniform float brightness : hint_range(0.5, 3.0) = 1.5;
+uniform float contrast : hint_range(0.5, 2.0) = 1.15;
+
+// Phosphor/CRT color
+uniform vec3 phosphor_color : source_color = vec3(0.2, 1.0, 0.5);
+uniform float phosphor_tint_strength : hint_range(0.0, 1.0) = 0.8;
+
+// CRT background glow (green tint when monitor is on)
+uniform vec3 screen_base_color : source_color = vec3(0.0, 0.12, 0.06);
+uniform float screen_base_strength : hint_range(0.0, 1.0) = 1.0;
+
+// Bloom/glow around bright content
+uniform float glow_intensity : hint_range(0.0, 1.0) = 0.2;
+uniform float glow_radius : hint_range(1.0, 10.0) = 3.0;
 
 // Random function for noise
 float random(vec2 st) {
 	return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
 }
 
-// Apply barrel distortion for CRT curvature
-vec2 curve_uv(vec2 uv) {
-	vec2 curved = uv * 2.0 - 1.0;
-	vec2 offset = curved.yx * curved.yx * curvature;
-	curved += curved * offset;
-	return curved * 0.5 + 0.5;
+// Simple blur for glow effect
+vec3 blur_sample(sampler2D tex, vec2 uv, vec2 pixel_size) {
+	vec3 col = vec3(0.0);
+	float total = 0.0;
+
+	for (float x = -2.0; x <= 2.0; x += 1.0) {
+		for (float y = -2.0; y <= 2.0; y += 1.0) {
+			float weight = 1.0 - length(vec2(x, y)) / 3.5;
+			weight = max(weight, 0.0);
+			col += texture(tex, uv + vec2(x, y) * pixel_size * glow_radius).rgb * weight;
+			total += weight;
+		}
+	}
+	return col / total;
 }
 
 void fragment() {
-	// Apply screen curvature
-	vec2 curved_uv = curve_uv(UV);
-	vec3 col = vec3(0.0);
-	
-	// Check if we're outside the curved screen area
-	bool outside = curved_uv.x < 0.0 || curved_uv.x > 1.0 || curved_uv.y < 0.0 || curved_uv.y > 1.0;
-	
-	if (outside) {
-		col = vec3(0.0, 0.0, 0.0);
-	} else {
-		// Chromatic aberration - separate RGB channels slightly
-		float r = texture(TEXTURE, curved_uv + vec2(chromatic_aberration, 0.0)).r;
-		float g = texture(TEXTURE, curved_uv).g;
-		float b = texture(TEXTURE, curved_uv - vec2(chromatic_aberration, 0.0)).b;
-		col = vec3(r, g, b);
-		
-		// Apply phosphor color tint (green monitor look)
-		if (enable_phosphor_tint) {
-			float luminance = dot(col, vec3(0.299, 0.587, 0.114));
-			col = mix(col, luminance * phosphor_color, 0.7);
-		}
-		
-		// Scanlines
-		float scanline = sin(curved_uv.y * scanline_frequency * 3.14159) * 0.5 + 0.5;
-		scanline = pow(scanline, 1.5);
-		col *= 1.0 - (scanline_intensity * (1.0 - scanline));
-		
-		// Horizontal sync wobble (subtle)
-		float wobble = sin(TIME * 2.0 + curved_uv.y * 10.0) * 0.0005;
-		col = mix(col, texture(TEXTURE, curved_uv + vec2(wobble, 0.0)).rgb, 0.3);
-		
-		// Screen flicker
-		float flicker = 1.0 - flicker_intensity * random(vec2(TIME * 0.01, 0.0));
-		col *= flicker;
-		
-		// Static noise
-		float noise = random(curved_uv + TIME * 0.1) * noise_intensity;
-		col += vec3(noise) * 0.5;
-		
-		// Vignette effect (darker edges)
-		vec2 vignette_uv = curved_uv * (1.0 - curved_uv);
-		float vignette = vignette_uv.x * vignette_uv.y * 15.0;
-		vignette = pow(vignette, vignette_intensity);
-		col *= vignette;
-		
-		// Brightness and contrast
-		col = (col - 0.5) * contrast + 0.5;
-		col *= brightness;
-		
-		// Phosphor glow effect (bloom simulation)
-		vec3 glow = texture(TEXTURE, curved_uv).rgb * glow_intensity;
-		col += glow * phosphor_color;
-		
-		// Clamp
-		col = clamp(col, 0.0, 1.0);
-	}
-	
+	vec2 pixel_size = 1.0 / vec2(textureSize(TEXTURE, 0));
+
+	// Start with the green-tinted CRT base color (phosphor glow when monitor is on)
+	vec3 col = screen_base_color * screen_base_strength;
+
+	// Sample the texture with chromatic aberration
+	float r = texture(TEXTURE, UV + vec2(chromatic_aberration, 0.0)).r;
+	float g = texture(TEXTURE, UV).g;
+	float b = texture(TEXTURE, UV - vec2(chromatic_aberration, 0.0)).b;
+	vec3 text_color = vec3(r, g, b);
+
+	// Convert to luminance and apply phosphor color tint
+	float luminance = dot(text_color, vec3(0.299, 0.587, 0.114));
+	vec3 tinted = luminance * phosphor_color;
+	text_color = mix(text_color, tinted, phosphor_tint_strength);
+
+	// Apply brightness to text
+	text_color *= brightness;
+
+	// Add bloom/glow around bright areas
+	vec3 glow = blur_sample(TEXTURE, UV, pixel_size);
+	float glow_luminance = dot(glow, vec3(0.299, 0.587, 0.114));
+	vec3 glow_colored = glow_luminance * phosphor_color * glow_intensity;
+
+	// Combine: base green + text + glow
+	col += text_color + glow_colored;
+
+	// Scanlines
+	float scanline = sin(UV.y * scanline_frequency * 3.14159) * 0.5 + 0.5;
+	scanline = pow(scanline, 1.2);
+	col *= 1.0 - (scanline_intensity * (1.0 - scanline));
+
+	// Screen flicker (subtle)
+	float flicker = 1.0 - flicker_intensity * random(vec2(floor(TIME * 30.0), 0.0));
+	col *= flicker;
+
+	// Static noise (very subtle)
+	float noise = random(UV * 500.0 + TIME) * noise_intensity;
+	col += vec3(noise * 0.3, noise, noise * 0.5);
+
+	// Apply contrast
+	col = (col - 0.5) * contrast + 0.5;
+
+	// Clamp final output
+	col = clamp(col, 0.0, 1.0);
+
 	COLOR = vec4(col, 1.0);
 }

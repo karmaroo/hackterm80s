@@ -16,18 +16,19 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_crt"]
 shader = ExtResource("3_crt")
-shader_parameter/scanline_intensity = 0.12
+shader_parameter/scanline_intensity = 0.08
 shader_parameter/scanline_frequency = 400.0
-shader_parameter/curvature = 0.0
-shader_parameter/vignette_intensity = 0.15
-shader_parameter/chromatic_aberration = 0.0005
+shader_parameter/chromatic_aberration = 0.0003
 shader_parameter/flicker_intensity = 0.003
-shader_parameter/noise_intensity = 0.01
-shader_parameter/brightness = 1.0
-shader_parameter/contrast = 1.05
-shader_parameter/phosphor_color = Vector3(0, 1, 0.4)
-shader_parameter/enable_phosphor_tint = false
-shader_parameter/glow_intensity = 0.05
+shader_parameter/noise_intensity = 0.015
+shader_parameter/brightness = 1.8
+shader_parameter/contrast = 1.15
+shader_parameter/phosphor_color = Vector3(0.25, 1.0, 0.55)
+shader_parameter/phosphor_tint_strength = 0.85
+shader_parameter/screen_base_color = Vector3(0.0, 0.1, 0.05)
+shader_parameter/screen_base_strength = 1.0
+shader_parameter/glow_intensity = 0.25
+shader_parameter/glow_radius = 2.5
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
 shader = ExtResource("5_bg")
@@ -36,10 +37,10 @@ shader_parameter/color_mid = Vector3(0.09, 0.075, 0.13)
 shader_parameter/color_bottom = Vector3(0.14, 0.11, 0.18)
 shader_parameter/vignette_strength = 0.45
 shader_parameter/vignette_softness = 0.8
-shader_parameter/monitor_glow_color = Vector3(0.1, 0.25, 0.15)
-shader_parameter/monitor_glow_strength = 0.25
+shader_parameter/monitor_glow_color = Vector3(0.15, 0.4, 0.2)
+shader_parameter/monitor_glow_strength = 0.4
 shader_parameter/monitor_glow_center = Vector2(0.5, 0.38)
-shader_parameter/monitor_glow_radius = 0.45
+shader_parameter/monitor_glow_radius = 0.55
 shader_parameter/ceiling_light_color = Vector3(0.25, 0.2, 0.15)
 shader_parameter/ceiling_light_strength = 0.08
 shader_parameter/noise_strength = 0.015
@@ -341,11 +342,10 @@ grow_vertical = 2
 
 [node name="MonitorLight" type="PointLight2D" parent="ComputerFrame/Monitor"]
 position = Vector2(300, 220)
-enabled = false
-color = Color(0.2, 0.95, 0.4, 1)
-energy = 2.5
+color = Color(0.4, 0.95, 0.5, 1)
+energy = 5.0
 texture = SubResource("GradientTexture2D_walllight")
-texture_scale = 3.0
+texture_scale = 5.0
 
 [node name="MonitorBody" type="ColorRect" parent="ComputerFrame/Monitor"]
 layout_mode = 1
@@ -489,6 +489,7 @@ offset_bottom = -68.0
 color = Color(0, 0.05, 0.02, 1)
 
 [node name="TerminalView" type="SubViewportContainer" parent="ComputerFrame/Monitor"]
+light_mask = 0
 material = SubResource("ShaderMaterial_crt")
 layout_mode = 1
 anchors_preset = -1
@@ -518,7 +519,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0, 0.04, 0.02, 1)
+color = Color(0.01, 0.06, 0.03, 1)
 
 [node name="Output" type="RichTextLabel" parent="ComputerFrame/Monitor/TerminalView/SubViewport/Terminal"]
 layout_mode = 1
@@ -529,7 +530,7 @@ offset_left = 8.0
 offset_top = 8.0
 offset_right = -8.0
 offset_bottom = -25.0
-theme_override_colors/default_color = Color(0.3, 1, 0.5, 1)
+theme_override_colors/default_color = Color(0.5, 1, 0.7, 1)
 theme_override_fonts/normal_font = ExtResource("4_font")
 theme_override_font_sizes/normal_font_size = 14
 bbcode_enabled = true

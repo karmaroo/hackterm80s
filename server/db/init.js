@@ -5,6 +5,18 @@
 const { initPhonePool } = require('../utils/phone_pool');
 
 /**
+ * Check if a column exists in a table
+ * @param {Database} db - SQLite database instance
+ * @param {string} table - Table name
+ * @param {string} column - Column name
+ * @returns {boolean}
+ */
+function columnExists(db, table, column) {
+  const info = db.prepare(`PRAGMA table_info(${table})`).all();
+  return info.some(col => col.name === column);
+}
+
+/**
  * Initialize database schema
  * @param {Database} db - SQLite database instance
  */
@@ -57,8 +69,46 @@ function initDatabase(db) {
     )
   `);
 
+  // Migrate player_files: add new columns if missing
+  if (!columnExists(db, 'player_files', 'content_hash')) {
+    console.log('  Adding content_hash column to player_files');
+    db.exec(`ALTER TABLE player_files ADD COLUMN content_hash TEXT`);
+  }
+  if (!columnExists(db, 'player_files', 'file_size')) {
+    console.log('  Adding file_size column to player_files');
+    db.exec(`ALTER TABLE player_files ADD COLUMN file_size INTEGER DEFAULT 0`);
+  }
+  if (!columnExists(db, 'player_files', 'program')) {
+    console.log('  Adding program column to player_files');
+    db.exec(`ALTER TABLE player_files ADD COLUMN program TEXT`);
+  }
+  if (!columnExists(db, 'player_files', 'updated_by_session')) {
+    console.log('  Adding updated_by_session column to player_files');
+    db.exec(`ALTER TABLE player_files ADD COLUMN updated_by_session TEXT`);
+  }
+
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_player_files ON player_files(player_id);
+    CREATE INDEX IF NOT EXISTS idx_player_files_updated ON player_files(player_id, updated_at);
+  `);
+
+  // File versions table (for version history, max 5 versions per file)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS file_versions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      player_id INTEGER NOT NULL REFERENCES players(id),
+      path TEXT NOT NULL,
+      version_number INTEGER NOT NULL,
+      file_type TEXT NOT NULL,
+      content TEXT,
+      content_hash TEXT,
+      file_size INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_file_versions_lookup ON file_versions(player_id, path, version_number);
   `);
 
   // Session tokens
@@ -76,6 +126,21 @@ function initDatabase(db) {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
     CREATE INDEX IF NOT EXISTS idx_sessions_player ON sessions(player_id);
+  `);
+
+  // Active WebSocket sessions (for real-time sync)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS active_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_token TEXT UNIQUE NOT NULL,
+      player_id INTEGER NOT NULL REFERENCES players(id),
+      connected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_ping DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_active_sessions_player ON active_sessions(player_id);
   `);
 
   console.log('Database schema initialized');

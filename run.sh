@@ -12,6 +12,7 @@ show_help() {
     echo "Usage: ./run.sh [command]"
     echo ""
     echo "Commands:"
+    echo "  dev         - Full rebuild: export game, restart API + web (USE THIS)"
     echo "  editor      - Launch Godot editor in Docker"
     echo "  play        - Run the game in Docker"
     echo "  build       - Build game for all platforms"
@@ -82,6 +83,63 @@ case "${1:-help}" in
         echo "Game available at http://localhost:9080/"
         echo "Use 'docker logs hackterm80s-game' to view logs"
         echo "Use 'docker rm -f hackterm80s-game' to stop"
+        ;;
+    dev)
+        echo "=== Full rebuild for development ==="
+        mkdir -p builds/web server/db
+
+        # Stop all containers
+        echo "[1/4] Stopping containers..."
+        docker compose --profile multiplayer down 2>/dev/null || true
+        docker rm -f hackterm80s-game hackterm80s-web hackterm80s-api 2>/dev/null || true
+
+        # Clean web build
+        echo "[2/4] Cleaning old build..."
+        rm -rf builds/web/index.*
+
+        # Export game
+        echo "[3/4] Exporting game..."
+        docker run --rm \
+            -v "$(pwd)/game:/game" \
+            -v "$(pwd)/builds:/builds" \
+            hackterm80s-godot-editor:latest \
+            godot --headless --path /game --export-debug "HTML5" /builds/web/index.html
+
+        # Start fresh containers
+        echo "[4/4] Starting services..."
+        docker compose --profile multiplayer up -d --build --force-recreate
+
+        # Wait for API to be ready (with retries)
+        echo ""
+        echo "Waiting for API server..."
+        for i in {1..30}; do
+            API_STATUS=$(curl -s http://localhost:3000/api/status 2>/dev/null || echo "")
+            if [[ "$API_STATUS" == *"online"* ]]; then
+                echo "  API ready after ${i}s"
+                break
+            fi
+            sleep 1
+        done
+
+        # Warmup API with OPTIONS preflight (fixes browser connection issue)
+        curl -s -X OPTIONS -H "Origin: http://localhost:9080" -H "Access-Control-Request-Method: GET" http://localhost:3000/api/status >/dev/null 2>&1
+
+        # Verify services
+        API_STATUS=$(curl -s http://localhost:3000/api/status 2>/dev/null || echo "FAILED")
+        WEB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9080/ 2>/dev/null || echo "FAILED")
+
+        echo ""
+        echo "========================================="
+        echo "  HackTerm80s Dev Environment"
+        echo "========================================="
+        echo "  Game:  http://localhost:9080/ (HTTP $WEB_STATUS)"
+        echo "  API:   http://localhost:3000/api/status"
+        echo "         $API_STATUS"
+        echo ""
+        echo "  Rebuild: ./run.sh dev"
+        echo "  Logs:    docker compose --profile multiplayer logs -f"
+        echo "  Stop:    docker compose --profile multiplayer down"
+        echo "========================================="
         ;;
     multiplayer)
         echo "Starting multiplayer stack (web + API)..."

@@ -1,17 +1,21 @@
 /**
  * HackTerm80s Multiplayer Backend API
  * Node.js/Express server with SQLite database
+ * WebSocket support for real-time multi-device sync
  */
 
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const path = require('path');
 const Database = require('better-sqlite3');
 const { initDatabase } = require('./db/init');
 const playersRouter = require('./routes/players');
 const filesystemRouter = require('./routes/filesystem');
+const { initWebSocket, getTotalConnections } = require('./websocket');
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 // Database setup
@@ -21,16 +25,37 @@ console.log(`Database path: ${dbPath}`);
 const db = new Database(dbPath);
 initDatabase(db);
 
-// Middleware
+// Add all CORS and COEP headers BEFORE other middleware
+app.use((req, res, next) => {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Session-Token, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  // COEP compatibility
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+
+  // Prevent caching
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
+  // Handle preflight immediately
+  if (req.method === 'OPTIONS') {
+    res.status(204).end();
+    return;
+  }
+
+  next();
+});
+
+// Keep cors middleware for additional handling
 app.use(cors({
-  origin: [
-    'http://localhost:9080',
-    'http://localhost:8080',
-    'http://127.0.0.1:9080',
-    /\.localhost$/
-  ],
+  origin: true,
   credentials: true
 }));
+
 app.use(express.json({ limit: '1mb' }));
 
 // Attach db to all requests
@@ -58,7 +83,8 @@ app.get('/api/status', (req, res) => {
   res.json({
     status: 'online',
     version: '1.0.0',
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    websocket_connections: getTotalConnections()
   });
 });
 
@@ -81,8 +107,11 @@ app.use((req, res) => {
   });
 });
 
+// Initialize WebSocket server
+initWebSocket(server, db);
+
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('========================================');
   console.log('  HackTerm80s Multiplayer API Server');
@@ -90,15 +119,22 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  Port: ${PORT}`);
   console.log(`  Database: ${dbPath}`);
   console.log('');
-  console.log('  Endpoints:');
+  console.log('  REST Endpoints:');
   console.log('    POST /api/register    - Register new player');
   console.log('    POST /api/recover     - Recover session');
   console.log('    GET  /api/player/:h   - Lookup by handle');
   console.log('    GET  /api/phone/:n    - Lookup by phone');
   console.log('    GET  /api/filesystem  - Get filesystem');
   console.log('    PUT  /api/filesystem  - Sync filesystem');
+  console.log('    POST /api/files       - Create/update file');
+  console.log('    POST /api/dirs        - Create directory');
+  console.log('    GET  /api/versions    - File version history');
+  console.log('    POST /api/batch       - Batch operations');
+  console.log('    GET  /api/sync        - Incremental sync');
   console.log('    GET  /api/stats       - Server stats');
   console.log('    GET  /api/status      - Health check');
+  console.log('');
+  console.log('  WebSocket: ws://localhost:' + PORT + '/ws');
   console.log('========================================');
   console.log('');
 });

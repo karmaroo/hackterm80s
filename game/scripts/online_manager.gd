@@ -2,6 +2,7 @@ extends Node
 class_name OnlineManagerClass
 ## OnlineManager - Handles communication with multiplayer backend
 ## Provides graceful degradation when offline
+## Supports WebSocket for real-time multi-device sync
 
 # Signals
 signal registration_complete(success: bool, data: Dictionary)
@@ -10,18 +11,43 @@ signal sync_complete(success: bool)
 signal filesystem_fetched(success: bool, filesystem: Dictionary)
 signal connection_status_changed(online: bool)
 
+# WebSocket signals for real-time sync
+signal file_changed_remote(path: String, content: String, file_type: String, program: String, metadata: Dictionary)
+signal file_deleted_remote(path: String)
+signal websocket_connected()
+signal websocket_disconnected()
+signal versions_received(path: String, current: Dictionary, versions: Array)
+signal version_restored(path: String, version: int)
+
 # Server configuration
-const DEFAULT_SERVER_URL = "http://localhost:3000/api"
+const DEFAULT_SERVER_URL = "http://homelab:3000/api"
+const API_PORT = 3000
 const TIMEOUT_SECONDS = 5.0
 
 # HTTP client
 var _http_request: HTTPRequest
 var _current_request: String = ""
 
+# WebSocket client
+var _websocket: WebSocketPeer
+var _ws_connected: bool = false
+var _ws_authenticated: bool = false
+var _ws_reconnect_timer: float = 0.0
+var _ws_reconnect_delay: float = 2.0
+const WS_RECONNECT_MAX_DELAY: float = 30.0
+var _ws_ping_timer: float = 0.0
+const WS_PING_INTERVAL: float = 25.0
+
 # Connection state
 var is_online: bool = false
 var _last_check_time: float = 0.0
-const CHECK_INTERVAL: float = 30.0  # Check server every 30 seconds
+const CHECK_INTERVAL_INITIAL: float = 3.0  # Fast retries initially
+const CHECK_INTERVAL_BASE: float = 30.0  # Base check interval after connected once
+const CHECK_INTERVAL_MAX: float = 300.0  # Max 5 minutes between checks when offline
+var _current_check_interval: float = CHECK_INTERVAL_INITIAL
+var _consecutive_failures: int = 0
+var _ever_connected: bool = false  # Track if we ever connected successfully
+var _logged_offline: bool = false  # Prevent log spam
 
 # Player data (cached locally)
 var is_registered: bool = false
@@ -40,21 +66,359 @@ func _ready() -> void:
 	add_child(_http_request)
 	_http_request.request_completed.connect(_on_request_completed)
 
+	# Detect API URL dynamically for web builds (handles port forwarding)
+	_detect_server_url()
+
 	# Load cached data from local storage
 	_load_local_data()
 
-	# Check server connectivity
-	call_deferred("_check_server_status")
+	# Short delay before initial server check to let scene stabilize
+	# Then check quickly to get online ASAP
+	get_tree().create_timer(0.5).timeout.connect(_check_server_status)
+
+
+func _detect_server_url() -> void:
+	server_url = DEFAULT_SERVER_URL
+	print("[OnlineManager] Using API URL: ", server_url)
 
 
 func _process(delta: float) -> void:
-	# Periodic server connectivity check
+	# Periodic server connectivity check with exponential backoff
 	_last_check_time += delta
-	if _last_check_time >= CHECK_INTERVAL:
+	if _last_check_time >= _current_check_interval:
 		_last_check_time = 0.0
 		if not _current_request.is_empty():
 			return  # Don't interrupt ongoing request
 		_check_server_status()
+
+	# Process WebSocket
+	_process_websocket(delta)
+
+
+# ===== WEBSOCKET =====
+
+func _process_websocket(delta: float) -> void:
+	if _websocket == null:
+		# Try to connect if we have a session token and are online
+		if is_online and not session_token.is_empty() and not _ws_connected:
+			_ws_reconnect_timer += delta
+			if _ws_reconnect_timer >= _ws_reconnect_delay:
+				_ws_reconnect_timer = 0.0
+				_connect_websocket()
+		return
+
+	_websocket.poll()
+	var state = _websocket.get_ready_state()
+
+	match state:
+		WebSocketPeer.STATE_OPEN:
+			if not _ws_connected:
+				_ws_connected = true
+				_ws_reconnect_delay = 2.0  # Reset reconnect delay
+				print("[OnlineManager] WebSocket connected, authenticating...")
+				_ws_authenticate()
+
+			# Handle incoming messages
+			while _websocket.get_available_packet_count() > 0:
+				var packet = _websocket.get_packet()
+				_handle_ws_message(packet.get_string_from_utf8())
+
+			# Ping to keep alive
+			_ws_ping_timer += delta
+			if _ws_ping_timer >= WS_PING_INTERVAL:
+				_ws_ping_timer = 0.0
+				_ws_send({"type": "ping"})
+
+		WebSocketPeer.STATE_CLOSING:
+			pass  # Wait for close
+
+		WebSocketPeer.STATE_CLOSED:
+			var code = _websocket.get_close_code()
+			var reason = _websocket.get_close_reason()
+			if _ws_connected or _ws_authenticated:
+				print("[OnlineManager] WebSocket closed: %d %s" % [code, reason])
+				_ws_connected = false
+				_ws_authenticated = false
+				websocket_disconnected.emit()
+			_websocket = null
+			# Exponential backoff for reconnection
+			_ws_reconnect_delay = min(_ws_reconnect_delay * 2, WS_RECONNECT_MAX_DELAY)
+
+
+func _connect_websocket() -> void:
+	if _websocket != null:
+		return
+
+	# Convert HTTP URL to WebSocket URL
+	var ws_url = server_url.replace("http://", "ws://").replace("https://", "wss://")
+	# Remove /api suffix and add /ws
+	ws_url = ws_url.replace("/api", "") + "/ws"
+
+	print("[OnlineManager] Connecting WebSocket to: %s" % ws_url)
+
+	_websocket = WebSocketPeer.new()
+	var error = _websocket.connect_to_url(ws_url)
+	if error != OK:
+		print("[OnlineManager] WebSocket connection failed: %d" % error)
+		_websocket = null
+
+
+func _ws_authenticate() -> void:
+	_ws_send({
+		"type": "auth",
+		"token": session_token
+	})
+
+
+func _ws_send(data: Dictionary) -> void:
+	if _websocket == null or _websocket.get_ready_state() != WebSocketPeer.STATE_OPEN:
+		return
+	_websocket.send_text(JSON.stringify(data))
+
+
+func _handle_ws_message(text: String) -> void:
+	var json = JSON.new()
+	if json.parse(text) != OK:
+		print("[OnlineManager] Failed to parse WebSocket message")
+		return
+
+	var msg = json.data
+	if not msg is Dictionary:
+		return
+
+	var msg_type = msg.get("type", "")
+
+	match msg_type:
+		"auth_ok":
+			_ws_authenticated = true
+			print("[OnlineManager] WebSocket authenticated as %s" % msg.get("handle", ""))
+			websocket_connected.emit()
+
+		"pong":
+			pass  # Connection alive
+
+		"error":
+			print("[OnlineManager] WebSocket error: %s - %s" % [msg.get("code", ""), msg.get("message", "")])
+
+		"file_changed":
+			# Remote file change from another device
+			var path = msg.get("path", "")
+			var content = msg.get("content", "")
+			var file_type = msg.get("file_type", "file")
+			var program = msg.get("program", "")
+			var metadata = msg.get("metadata", {})
+			if metadata == null:
+				metadata = {}
+			print("[OnlineManager] Remote file change: %s" % path)
+			file_changed_remote.emit(path, content, file_type, program, metadata)
+
+		"file_deleted":
+			# Remote file deletion from another device
+			var path = msg.get("path", "")
+			print("[OnlineManager] Remote file delete: %s" % path)
+			file_deleted_remote.emit(path)
+
+		"file_change_ok", "file_delete_ok", "mkdir_ok", "rmdir_ok":
+			# Confirmation of our own change
+			pass
+
+		"sync_data":
+			# Full sync response
+			var files = msg.get("files", [])
+			var fs_dict = {}
+			for f in files:
+				fs_dict[f.path] = {
+					"type": f.type,
+					"content": f.content,
+					"program": f.get("program"),
+					"metadata": f.get("metadata")
+				}
+			filesystem_fetched.emit(true, fs_dict)
+
+		"versions_data":
+			# Version history response
+			var path = msg.get("path", "")
+			var current = msg.get("current", {})
+			var versions = msg.get("versions", [])
+			versions_received.emit(path, current, versions)
+
+		"version_restored":
+			var path = msg.get("path", "")
+			var version = msg.get("restored_version", 0)
+			version_restored.emit(path, version)
+
+
+func disconnect_websocket() -> void:
+	if _websocket != null:
+		_websocket.close()
+		_websocket = null
+		_ws_connected = false
+		_ws_authenticated = false
+
+
+# ===== FILE OPERATIONS VIA WEBSOCKET =====
+
+func create_or_update_file(path: String, content: String, file_type: String = "file", program: String = "", metadata: Dictionary = {}) -> void:
+	"""Create or update a file via WebSocket (or HTTP fallback)"""
+	if _ws_authenticated:
+		var msg = {
+			"type": "file_change",
+			"path": path,
+			"content": content,
+			"file_type": file_type,
+			"program": program if not program.is_empty() else null
+		}
+		if not metadata.is_empty():
+			msg["metadata"] = metadata
+		_ws_send(msg)
+	else:
+		# HTTP fallback
+		_http_create_file(path, content, file_type, program, metadata)
+
+
+func delete_file(path: String) -> void:
+	"""Delete a file via WebSocket (or HTTP fallback)"""
+	if _ws_authenticated:
+		_ws_send({
+			"type": "file_delete",
+			"path": path
+		})
+	else:
+		_http_delete_file(path)
+
+
+func create_directory(path: String) -> void:
+	"""Create a directory via WebSocket (or HTTP fallback)"""
+	if _ws_authenticated:
+		_ws_send({
+			"type": "mkdir",
+			"path": path
+		})
+	else:
+		_http_create_dir(path)
+
+
+func remove_directory(path: String) -> void:
+	"""Remove a directory via WebSocket (or HTTP fallback)"""
+	if _ws_authenticated:
+		_ws_send({
+			"type": "rmdir",
+			"path": path
+		})
+	else:
+		_http_remove_dir(path)
+
+
+func request_sync(since_timestamp: int = 0) -> void:
+	"""Request full sync via WebSocket"""
+	if _ws_authenticated:
+		_ws_send({
+			"type": "request_sync",
+			"since": since_timestamp if since_timestamp > 0 else null
+		})
+
+
+func get_file_versions(path: String) -> void:
+	"""Get version history for a file"""
+	if not is_online or session_token.is_empty():
+		return
+
+	if not _current_request.is_empty():
+		return
+
+	_current_request = "versions"
+	var headers = ["X-Session-Token: " + session_token]
+	# URL encode the path
+	var encoded_path = path.uri_encode()
+	var error = _http_request.request(
+		server_url + "/versions/" + session_token + "/" + encoded_path,
+		headers,
+		HTTPClient.METHOD_GET
+	)
+
+	if error != OK:
+		print("[OnlineManager] Failed to get versions: ", error)
+		_current_request = ""
+
+
+func restore_file_version(path: String, version: int) -> void:
+	"""Restore a file to a previous version"""
+	if not is_online or session_token.is_empty():
+		return
+
+	if not _current_request.is_empty():
+		return
+
+	_current_request = "restore"
+	var headers = ["Content-Type: application/json", "X-Session-Token: " + session_token]
+	var encoded_path = path.uri_encode()
+	var error = _http_request.request(
+		server_url + "/versions/" + session_token + "/" + encoded_path + "/restore/" + str(version),
+		headers,
+		HTTPClient.METHOD_POST
+	)
+
+	if error != OK:
+		print("[OnlineManager] Failed to restore version: ", error)
+		_current_request = ""
+
+
+# ===== HTTP FALLBACK OPERATIONS =====
+
+func _http_create_file(path: String, content: String, file_type: String, program: String, metadata: Dictionary = {}) -> void:
+	if not is_online or session_token.is_empty():
+		return
+	if not _current_request.is_empty():
+		return
+
+	_current_request = "create_file"
+	var data = {
+		"path": path,
+		"content": content,
+		"file_type": file_type,
+		"program": program if not program.is_empty() else null
+	}
+	if not metadata.is_empty():
+		data["metadata"] = metadata
+	var body = JSON.stringify(data)
+	var headers = ["Content-Type: application/json", "X-Session-Token: " + session_token]
+	_http_request.request(server_url + "/files/" + session_token, headers, HTTPClient.METHOD_POST, body)
+
+
+func _http_delete_file(path: String) -> void:
+	if not is_online or session_token.is_empty():
+		return
+	if not _current_request.is_empty():
+		return
+
+	_current_request = "delete_file"
+	var headers = ["X-Session-Token: " + session_token]
+	var encoded_path = path.uri_encode()
+	_http_request.request(server_url + "/files/" + session_token + "/" + encoded_path, headers, HTTPClient.METHOD_DELETE)
+
+
+func _http_create_dir(path: String) -> void:
+	if not is_online or session_token.is_empty():
+		return
+	if not _current_request.is_empty():
+		return
+
+	_current_request = "create_dir"
+	var body = JSON.stringify({"path": path})
+	var headers = ["Content-Type: application/json", "X-Session-Token: " + session_token]
+	_http_request.request(server_url + "/dirs/" + session_token, headers, HTTPClient.METHOD_POST, body)
+
+
+func _http_remove_dir(path: String) -> void:
+	if not is_online or session_token.is_empty():
+		return
+	if not _current_request.is_empty():
+		return
+
+	_current_request = "remove_dir"
+	var headers = ["X-Session-Token: " + session_token]
+	var encoded_path = path.uri_encode()
+	_http_request.request(server_url + "/dirs/" + session_token + "/" + encoded_path, headers, HTTPClient.METHOD_DELETE)
 
 
 # ===== LOCAL DATA PERSISTENCE =====
@@ -109,10 +473,37 @@ func _check_server_status() -> void:
 
 
 func _set_online(online: bool) -> void:
-	if is_online != online:
-		is_online = online
-		print("[OnlineManager] Connection status: %s" % ("ONLINE" if online else "OFFLINE"))
-		connection_status_changed.emit(online)
+	var status_changed = is_online != online
+	is_online = online
+
+	if online:
+		# Reset backoff on successful connection
+		_consecutive_failures = 0
+		_ever_connected = true
+		_current_check_interval = CHECK_INTERVAL_BASE
+		_logged_offline = false
+		if status_changed:
+			print("[OnlineManager] Connection status: ONLINE")
+			connection_status_changed.emit(online)
+			# Try to connect WebSocket when coming online
+			if not session_token.is_empty() and not _ws_connected:
+				_connect_websocket()
+	else:
+		# Increase backoff on failure
+		_consecutive_failures += 1
+		if _ever_connected:
+			# Slower backoff if we've connected before (network went down)
+			_current_check_interval = min(CHECK_INTERVAL_BASE * pow(2, _consecutive_failures - 1), CHECK_INTERVAL_MAX)
+		else:
+			# Fast retries during initial connection attempts (3s, 5s, 8s, 12s...)
+			_current_check_interval = min(CHECK_INTERVAL_INITIAL + (_consecutive_failures * 2), 15.0)
+		if status_changed or not _logged_offline:
+			print("[OnlineManager] Connection status: OFFLINE (retry in %.0fs)" % _current_check_interval)
+			_logged_offline = true
+			if status_changed:
+				connection_status_changed.emit(online)
+				# Disconnect WebSocket when going offline
+				disconnect_websocket()
 
 
 # ===== REGISTRATION =====
@@ -159,17 +550,16 @@ func recover_session(code: String) -> void:
 		recovery_complete.emit(false, {"error": "REQUEST_FAILED"})
 
 
-# ===== FILESYSTEM SYNC =====
+# ===== FILESYSTEM SYNC (Legacy HTTP) =====
 
 func sync_filesystem(filesystem: Dictionary) -> void:
-	"""Sync filesystem to server"""
+	"""Sync filesystem to server (full replacement - legacy)"""
 	if not is_online or session_token.is_empty():
 		print("[OnlineManager] Cannot sync: offline or no session")
 		return
 
 	if not _current_request.is_empty():
 		print("[OnlineManager] Request already in progress, queuing sync")
-		# TODO: Queue for later
 		return
 
 	_current_request = "sync"
@@ -222,7 +612,9 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 
 	# Check for timeout or connection errors
 	if result != HTTPRequest.RESULT_SUCCESS:
-		print("[OnlineManager] Request failed: result=%d" % result)
+		# Only log non-status failures to reduce spam
+		if request_type != "status":
+			print("[OnlineManager] Request failed: %s (result=%d)" % [request_type, result])
 		_set_online(false)
 		_handle_request_error(request_type, {"error": "CONNECTION_FAILED"})
 		return
@@ -234,7 +626,9 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 	if parse_result == OK:
 		data = json.data if json.data is Dictionary else {}
 
-	print("[OnlineManager] %s response: %d" % [request_type, response_code])
+	# Only log non-status responses to reduce spam
+	if request_type != "status":
+		print("[OnlineManager] %s response: %d" % [request_type, response_code])
 
 	# Handle based on request type
 	match request_type:
@@ -248,6 +642,14 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 			_handle_sync_response(response_code, data)
 		"fetch":
 			_handle_fetch_response(response_code, data)
+		"versions":
+			_handle_versions_response(response_code, data)
+		"restore":
+			_handle_restore_response(response_code, data)
+		"create_file", "delete_file", "create_dir", "remove_dir":
+			# HTTP fallback operations - just log
+			if response_code != 200:
+				print("[OnlineManager] %s failed: %s" % [request_type, data.get("error", "UNKNOWN")])
 
 
 func _handle_request_error(request_type: String, error_data: Dictionary) -> void:
@@ -272,6 +674,8 @@ func _handle_registration_response(response_code: int, data: Dictionary) -> void
 		_set_online(true)
 		print("[OnlineManager] Registration successful: %s (%s)" % [player_handle, player_phone])
 		registration_complete.emit(true, data)
+		# Connect WebSocket after successful registration
+		_connect_websocket()
 	else:
 		# Error
 		var error = data.get("error", "UNKNOWN")
@@ -292,6 +696,8 @@ func _handle_recovery_response(response_code: int, data: Dictionary) -> void:
 		_set_online(true)
 		print("[OnlineManager] Recovery successful: %s (%s)" % [player_handle, player_phone])
 		recovery_complete.emit(true, data)
+		# Connect WebSocket after successful recovery
+		_connect_websocket()
 	else:
 		var error = data.get("error", "UNKNOWN")
 		var message = data.get("message", "Recovery failed")
@@ -318,6 +724,25 @@ func _handle_fetch_response(response_code: int, data: Dictionary) -> void:
 		filesystem_fetched.emit(false, {})
 
 
+func _handle_versions_response(response_code: int, data: Dictionary) -> void:
+	if response_code == 200:
+		var path = data.get("path", "")
+		var current = data.get("current", {})
+		var versions = data.get("versions", [])
+		versions_received.emit(path, current, versions)
+	else:
+		print("[OnlineManager] Versions fetch failed: %s" % data.get("error", "UNKNOWN"))
+
+
+func _handle_restore_response(response_code: int, data: Dictionary) -> void:
+	if response_code == 200:
+		var path = data.get("path", "")
+		var version = data.get("restored_version", 0)
+		version_restored.emit(path, version)
+	else:
+		print("[OnlineManager] Version restore failed: %s" % data.get("error", "UNKNOWN"))
+
+
 # ===== OFFLINE REGISTRATION =====
 
 func setup_offline_mode(handle: String) -> void:
@@ -340,8 +765,13 @@ func clear_local_data() -> void:
 	player_phone = ""
 	recovery_code = ""
 	session_token = ""
+	disconnect_websocket()
 	var dir = DirAccess.open("user://")
 	if dir:
 		dir.remove("online.cfg")
 		dir.remove("browser_id.cfg")
 	print("[OnlineManager] Local data cleared")
+
+
+func is_websocket_connected() -> bool:
+	return _ws_authenticated

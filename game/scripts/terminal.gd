@@ -11,71 +11,87 @@ var current_drive: String = "C:"
 var current_path: String = "\\"
 
 # Virtual filesystem structure (C: drive - hard disk)
+# File attributes: R=Read-only, H=Hidden, S=System, A=Archive
 var filesystem := {
 	"C:\\": {
 		"type": "dir",
+		"attr": "S",
 		"contents": ["DOS", "GAMES", "UTILS", "AUTOEXEC.BAT", "CONFIG.SYS"]
 	},
 	"C:\\DOS": {
 		"type": "dir",
+		"attr": "S",
 		"contents": ["COMMAND.COM", "FORMAT.COM", "CHKDSK.COM", "MORE.COM", "FIND.EXE", "SORT.EXE", "TREE.COM", "ATTRIB.EXE"]
 	},
-	"C:\\DOS\\COMMAND.COM": {"type": "exe", "program": "command"},
-	"C:\\DOS\\FORMAT.COM": {"type": "exe", "program": "format"},
-	"C:\\DOS\\CHKDSK.COM": {"type": "exe", "program": "chkdsk"},
-	"C:\\DOS\\MORE.COM": {"type": "exe", "program": "more"},
-	"C:\\DOS\\FIND.EXE": {"type": "exe", "program": "find"},
-	"C:\\DOS\\SORT.EXE": {"type": "exe", "program": "sort"},
-	"C:\\DOS\\TREE.COM": {"type": "exe", "program": "tree"},
-	"C:\\DOS\\ATTRIB.EXE": {"type": "exe", "program": "attrib"},
+	"C:\\DOS\\COMMAND.COM": {"type": "exe", "program": "command", "attr": "RS"},
+	"C:\\DOS\\FORMAT.COM": {"type": "exe", "program": "format", "attr": "RS"},
+	"C:\\DOS\\CHKDSK.COM": {"type": "exe", "program": "chkdsk", "attr": "RS"},
+	"C:\\DOS\\MORE.COM": {"type": "exe", "program": "more", "attr": "RS"},
+	"C:\\DOS\\FIND.EXE": {"type": "exe", "program": "find", "attr": "RS"},
+	"C:\\DOS\\SORT.EXE": {"type": "exe", "program": "sort", "attr": "RS"},
+	"C:\\DOS\\TREE.COM": {"type": "exe", "program": "tree", "attr": "RS"},
+	"C:\\DOS\\ATTRIB.EXE": {"type": "exe", "program": "attrib", "attr": "RS"},
 	"C:\\GAMES": {
 		"type": "dir",
 		"contents": ["README.TXT"]
 	},
-	"C:\\GAMES\\README.TXT": {"type": "file", "content": "No games installed.\nInsert game disk in A: drive."},
+	"C:\\GAMES\\README.TXT": {"type": "file", "content": "No games installed.\nInsert game disk in A: drive.", "attr": "A"},
 	"C:\\UTILS": {
 		"type": "dir",
-		"contents": ["MODEM.COM"]
+		"attr": "S",
+		"contents": ["MODEM.COM", "EDIT.COM"]
 	},
-	"C:\\UTILS\\MODEM.COM": {"type": "exe", "program": "modem"},
-	"C:\\AUTOEXEC.BAT": {"type": "file", "content": "@ECHO OFF\nPROMPT $P$G\nPATH C:\\DOS;C:\\UTILS\nECHO.\nECHO Welcome to SHADOW-DOS\n"},
-	"C:\\CONFIG.SYS": {"type": "file", "content": "FILES=20\nBUFFERS=30\nDEVICE=HIMEM.SYS\n"},
+	"C:\\UTILS\\MODEM.COM": {"type": "exe", "program": "modem", "attr": "RS"},
+	"C:\\UTILS\\EDIT.COM": {"type": "exe", "program": "edit"},
+	"C:\\AUTOEXEC.BAT": {"type": "file", "content": "@ECHO OFF\nPROMPT $P$G\nPATH C:\\DOS;C:\\UTILS\nECHO.\nECHO Welcome to SHADOW-DOS\n", "attr": "RS"},
+	"C:\\CONFIG.SYS": {"type": "file", "content": "FILES=20\nBUFFERS=30\nDEVICE=HIMEM.SYS\n", "attr": "RS"},
 }
 
 # Default system filesystem (protected from server sync overwrites)
+# File attributes: R=Read-only, H=Hidden, S=System, A=Archive
 const DEFAULT_FILESYSTEM := {
 	"C:\\": {
 		"type": "dir",
+		"attr": "S",
 		"contents": ["DOS", "GAMES", "UTILS", "AUTOEXEC.BAT", "CONFIG.SYS"]
 	},
 	"C:\\DOS": {
 		"type": "dir",
+		"attr": "S",
 		"contents": ["COMMAND.COM", "FORMAT.COM", "CHKDSK.COM", "MORE.COM", "FIND.EXE", "SORT.EXE", "TREE.COM", "ATTRIB.EXE"]
 	},
-	"C:\\DOS\\COMMAND.COM": {"type": "exe", "program": "command"},
-	"C:\\DOS\\FORMAT.COM": {"type": "exe", "program": "format"},
-	"C:\\DOS\\CHKDSK.COM": {"type": "exe", "program": "chkdsk"},
-	"C:\\DOS\\MORE.COM": {"type": "exe", "program": "more"},
-	"C:\\DOS\\FIND.EXE": {"type": "exe", "program": "find"},
-	"C:\\DOS\\SORT.EXE": {"type": "exe", "program": "sort"},
-	"C:\\DOS\\TREE.COM": {"type": "exe", "program": "tree"},
-	"C:\\DOS\\ATTRIB.EXE": {"type": "exe", "program": "attrib"},
+	"C:\\DOS\\COMMAND.COM": {"type": "exe", "program": "command", "attr": "RS"},
+	"C:\\DOS\\FORMAT.COM": {"type": "exe", "program": "format", "attr": "RS"},
+	"C:\\DOS\\CHKDSK.COM": {"type": "exe", "program": "chkdsk", "attr": "RS"},
+	"C:\\DOS\\MORE.COM": {"type": "exe", "program": "more", "attr": "RS"},
+	"C:\\DOS\\FIND.EXE": {"type": "exe", "program": "find", "attr": "RS"},
+	"C:\\DOS\\SORT.EXE": {"type": "exe", "program": "sort", "attr": "RS"},
+	"C:\\DOS\\TREE.COM": {"type": "exe", "program": "tree", "attr": "RS"},
+	"C:\\DOS\\ATTRIB.EXE": {"type": "exe", "program": "attrib", "attr": "RS"},
 	"C:\\GAMES": {
 		"type": "dir",
 		"contents": ["README.TXT"]
 	},
-	"C:\\GAMES\\README.TXT": {"type": "file", "content": "No games installed.\nInsert game disk in A: drive."},
+	"C:\\GAMES\\README.TXT": {"type": "file", "content": "No games installed.\nInsert game disk in A: drive.", "attr": "A"},
 	"C:\\UTILS": {
 		"type": "dir",
-		"contents": ["MODEM.COM"]
+		"attr": "S",
+		"contents": ["MODEM.COM", "EDIT.COM"]
 	},
-	"C:\\UTILS\\MODEM.COM": {"type": "exe", "program": "modem"},
-	"C:\\AUTOEXEC.BAT": {"type": "file", "content": "@ECHO OFF\nPROMPT $P$G\nPATH C:\\DOS;C:\\UTILS\nECHO.\nECHO Welcome to SHADOW-DOS\n"},
-	"C:\\CONFIG.SYS": {"type": "file", "content": "FILES=20\nBUFFERS=30\nDEVICE=HIMEM.SYS\n"},
+	"C:\\UTILS\\MODEM.COM": {"type": "exe", "program": "modem", "attr": "RS"},
+	"C:\\UTILS\\EDIT.COM": {"type": "exe", "program": "edit"},
+	"C:\\AUTOEXEC.BAT": {"type": "file", "content": "@ECHO OFF\nPROMPT $P$G\nPATH C:\\DOS;C:\\UTILS\nECHO.\nECHO Welcome to SHADOW-DOS\n", "attr": "RS"},
+	"C:\\CONFIG.SYS": {"type": "file", "content": "FILES=20\nBUFFERS=30\nDEVICE=HIMEM.SYS\n", "attr": "RS"},
 }
 
-# Protected path prefixes that are never overwritten by server sync
+# Protected path prefixes that are never overwritten by server sync (system files)
 const PROTECTED_PREFIXES := ["C:\\DOS", "C:\\UTILS", "C:\\AUTOEXEC.BAT", "C:\\CONFIG.SYS"]
+
+# File attribute constants
+const ATTR_READONLY := "R"
+const ATTR_HIDDEN := "H"
+const ATTR_SYSTEM := "S"
+const ATTR_ARCHIVE := "A"
 
 # Environment variables
 var env_vars := {
@@ -133,6 +149,15 @@ signal program_exit()
 # Built-in DOS commands - initialized in _ready()
 var builtin_commands := {}
 
+# Flag to prevent remote changes from triggering re-sync
+var _applying_remote_change: bool = false
+
+# Flag to control auto-scroll behavior - only scroll when new content added
+var _should_scroll_to_bottom: bool = true
+
+# Track if user has scrolled away from bottom (to skip cursor blink refreshes)
+var _user_scrolled_away: bool = false
+
 
 func _get_prompt() -> String:
 	return current_drive + current_path + ">"
@@ -179,15 +204,29 @@ func _ready() -> void:
 		"chkdsk": _cmd_chkdsk,
 		"format": _cmd_format,
 		"crt": _cmd_crt,
+		"version": _cmd_version,
+		"edit": _cmd_edit,
 	}
 
 	terminal_view = get_node_or_null("../TerminalView")
 	if terminal_view:
 		output = terminal_view.get_node_or_null("TerminalOutput")
-	
+
 	if not output:
 		output = get_node_or_null("Output")
-	
+
+	# Hide scrollbar but keep mouse scrolling functional
+	if output:
+		var scrollbar = output.get_v_scroll_bar()
+		if scrollbar:
+			scrollbar.modulate.a = 0  # Make invisible but still functional
+
+	# Connect to OnlineManager signals for real-time sync
+	OnlineManager.file_changed_remote.connect(_on_remote_file_change)
+	OnlineManager.file_deleted_remote.connect(_on_remote_file_delete)
+	OnlineManager.versions_received.connect(_on_versions_received)
+	OnlineManager.version_restored.connect(_on_version_restored)
+
 	# Input is now handled directly by main.gd - no LineEdit needed
 
 
@@ -199,13 +238,28 @@ func init() -> void:
 
 
 func _process(_delta: float) -> void:
+	# Skip terminal processing when a program has taken over the screen
+	if current_program:
+		return
+
+	# Track if user scrolled away from bottom
+	if output:
+		var scroll_bar = output.get_v_scroll_bar()
+		var at_bottom = scroll_bar.value >= scroll_bar.max_value - 20
+		if not at_bottom and not _should_scroll_to_bottom:
+			_user_scrolled_away = true
+		elif at_bottom:
+			_user_scrolled_away = false
+
 	# Blink cursor every 0.5 seconds
 	if is_ready and not is_typing:
 		var blink_time := fmod(Time.get_ticks_msec() / 500.0, 2.0)
 		var new_cursor_visible := blink_time < 1.0
 		if new_cursor_visible != cursor_visible:
 			cursor_visible = new_cursor_visible
-			_refresh_display()
+			# Skip full refresh if user has scrolled away - they can't see cursor anyway
+			if not _user_scrolled_away:
+				_refresh_display()
 
 
 func _boot_sequence() -> void:
@@ -460,6 +514,8 @@ func _show_prompt() -> void:
 	# Store current output as base, then add prompt
 	_display_base = _output_text + _get_prompt()
 	current_input = ""
+	_should_scroll_to_bottom = true
+	_user_scrolled_away = false  # New prompt, return to bottom
 	_refresh_display()
 
 
@@ -468,6 +524,8 @@ func handle_char_input(char_str: String) -> void:
 	if not is_ready or is_typing:
 		return
 	current_input += char_str
+	_should_scroll_to_bottom = true
+	_user_scrolled_away = false  # User is typing, return to bottom
 	_refresh_display()
 
 
@@ -484,6 +542,8 @@ func handle_backspace() -> void:
 func handle_enter() -> void:
 	if not is_ready or is_typing:
 		return
+	_should_scroll_to_bottom = true
+	_user_scrolled_away = false  # User pressed enter, return to bottom
 	# Check if we're waiting for registration input
 	if _awaiting_registration_input:
 		_registration_handle_enter()
@@ -533,13 +593,17 @@ func _process_command() -> void:
 		current_program.handle_input(raw_text)
 		return
 	
-	# Echo command and process
-	print_line("")
-	
+	# Handle empty command - just show new prompt (DOS behavior)
+	# Commit the current prompt line to output, then show new prompt
 	if command.is_empty():
+		_output_text += _get_prompt() + "\n"
 		_show_prompt()
 		return
-	
+
+	# Echo prompt and command to output (commit what user typed)
+	_output_text += _get_prompt() + raw_text + "\n"
+	_update_display()
+
 	# Add to history
 	command_history.append(command)
 	history_index = command_history.size()
@@ -553,7 +617,6 @@ func _process_command() -> void:
 	
 	var cmd_name := parts[0].to_lower()
 	var args := parts.slice(1)
-	print("[Terminal] Command: '%s' -> '%s', has_cmd=%s" % [parts[0], cmd_name, builtin_commands.has(cmd_name)])
 	
 	# Drive switching
 	if command == "A:" or command == "A":
@@ -589,37 +652,56 @@ func _process_command() -> void:
 	_show_prompt()
 
 
-func _try_run_executable(cmd: String, _args: Array) -> bool:
+func _try_run_executable(cmd: String, args: Array) -> bool:
 	var exe_names = [cmd.to_upper() + ".EXE", cmd.to_upper() + ".COM"]
-	
+
 	for exe_name in exe_names:
 		var file_key = current_drive + current_path.trim_suffix("\\") + "\\" + exe_name
 		if file_key.begins_with("C:\\\\"):
 			file_key = "C:\\" + exe_name
-		
+
 		var fs_to_check = filesystem if current_drive == "C:" else floppy_filesystem
-		
+
 		if fs_to_check.has(file_key):
 			var file_data = fs_to_check[file_key]
 			if file_data.type == "exe" and file_data.has("program"):
-				_run_executable(file_data.program)
+				_run_executable(file_data.program, args)
 				return true
-	
+
+	# Also check PATH directories
+	var path_dirs = env_vars.get("PATH", "").split(";")
+	for dir in path_dirs:
+		if dir.is_empty():
+			continue
+		for exe_name in exe_names:
+			var file_key = dir + "\\" + exe_name
+			file_key = file_key.replace("\\\\", "\\")
+			var fs_to_check = filesystem if file_key.begins_with("C:") else floppy_filesystem
+			if fs_to_check.has(file_key):
+				var file_data = fs_to_check[file_key]
+				if file_data.type == "exe" and file_data.has("program"):
+					_run_executable(file_data.program, args)
+					return true
+
 	return false
 
 
-func _run_executable(program_name: String) -> void:
+func _run_executable(program_name: String, args: Array = []) -> void:
 	match program_name:
 		"wardialer":
 			var scene = load("res://scenes/programs/wardialer.tscn")
 			if scene:
 				print_line("")
-				_start_program(scene)
+				_start_program(scene, args)
 		"bbsdialer":
 			var scene = load("res://scenes/programs/bbs_dialer.tscn")
 			if scene:
 				print_line("")
-				_start_program(scene)
+				_start_program(scene, args)
+		"edit":
+			var scene = load("res://scenes/programs/editor.tscn")
+			if scene:
+				_start_program(scene, args)
 		_:
 			print_line("")
 			print_line("Program not implemented: " + program_name)
@@ -627,16 +709,16 @@ func _run_executable(program_name: String) -> void:
 			_show_prompt()
 
 
-func _start_program(scene: PackedScene) -> void:
+func _start_program(scene: PackedScene, args: Array = []) -> void:
 	if current_program:
 		stop_program()
-	
+
 	current_program = scene.instantiate()
 	current_program.terminal = self
 	add_child(current_program)
-	
+
 	if current_program.has_method("start"):
-		current_program.start()
+		current_program.start(args)
 
 
 func stop_program() -> void:
@@ -719,39 +801,69 @@ func _add_text_with_newlines(text: String) -> void:
 func _refresh_display() -> void:
 	if not output or is_typing or _slow_print_active:
 		return
-	
+
 	var cursor_char := "_" if cursor_visible else " "
-	
+
+	# Save scroll position before clearing (to preserve user's scroll position)
+	var scroll_bar = output.get_v_scroll_bar()
+	var old_scroll = scroll_bar.value
+	var was_at_bottom = old_scroll >= scroll_bar.max_value - 20
+
 	# Program input mode
 	if _program_input_mode and current_program:
 		output.clear()
 		_add_text_with_newlines(_program_output_buffer + _program_prompt + current_input + cursor_char)
-		_scroll_to_bottom()
+		_restore_scroll(old_scroll, was_at_bottom)
 		return
-	
+
 	# Passthrough mode (AI hosts)
 	if passthrough_mode:
 		output.clear()
 		_add_text_with_newlines(_passthrough_base_text + current_input + cursor_char)
-		_scroll_to_bottom()
+		_restore_scroll(old_scroll, was_at_bottom)
 		return
-	
+
 	# Raw input mode
 	if raw_input_mode and current_program:
 		output.clear()
 		_add_text_with_newlines(_last_output_text + current_input + cursor_char)
-		_scroll_to_bottom()
+		_restore_scroll(old_scroll, was_at_bottom)
 		return
-	
+
 	# Program running but not waiting for input
 	if current_program:
-		_scroll_to_bottom()
 		return
-	
+
 	# Normal DOS prompt mode - use stored base text
 	output.clear()
 	_add_text_with_newlines(_display_base + current_input + cursor_char)
-	_scroll_to_bottom()
+	_restore_scroll(old_scroll, was_at_bottom)
+
+
+func _restore_scroll(old_scroll: float, was_at_bottom: bool) -> void:
+	"""Restore scroll position after display refresh"""
+	# If new content was explicitly added, scroll to bottom
+	if _should_scroll_to_bottom:
+		output.get_v_scroll_bar().value = output.get_v_scroll_bar().max_value
+		_should_scroll_to_bottom = false
+		return
+
+	# Otherwise restore the previous scroll position
+	# Use call_deferred to ensure it happens after the RichTextLabel updates
+	if was_at_bottom:
+		call_deferred("_scroll_to_bottom_deferred")
+	else:
+		call_deferred("_set_scroll_deferred", old_scroll)
+
+
+func _scroll_to_bottom_deferred() -> void:
+	if output:
+		output.get_v_scroll_bar().value = output.get_v_scroll_bar().max_value
+
+
+func _set_scroll_deferred(scroll_value: float) -> void:
+	if output:
+		output.get_v_scroll_bar().value = scroll_value
 
 
 # Legacy alias for compatibility
@@ -779,25 +891,28 @@ func _update_display() -> void:
 
 func print_line(text: String) -> void:
 	_output_text += text + "\n"
+	_should_scroll_to_bottom = true
 	_update_display()
 
 
 func print_text(text: String) -> void:
 	_output_text += text
+	_should_scroll_to_bottom = true
 	_update_display()
 
 
 func type_line(text: String, speed: float = -1.0) -> void:
 	if speed < 0:
 		speed = typing_speed
-	
+
 	is_typing = true
-	
+	_should_scroll_to_bottom = true
+
 	for c in text:
 		_output_text += c
 		_update_display()
 		await get_tree().create_timer(speed).timeout
-	
+
 	_output_text += "\n"
 	_update_display()
 	is_typing = false
@@ -806,13 +921,14 @@ func type_line(text: String, speed: float = -1.0) -> void:
 func print_slow(text: String, baud: int = 1200) -> void:
 	is_typing = true
 	_slow_print_active = true
+	_should_scroll_to_bottom = true
 	var char_delay = 10.0 / float(baud)
-	
+
 	for c in text:
 		_output_text += c
 		_update_display()
 		await get_tree().create_timer(char_delay).timeout
-	
+
 	is_typing = false
 	_slow_print_active = false
 
@@ -820,19 +936,46 @@ func print_slow(text: String, baud: int = 1200) -> void:
 func clear_screen() -> void:
 	_output_text = ""
 	_display_base = ""
+	_should_scroll_to_bottom = true
 	if output:
 		output.clear()
 
 
 func get_screen_brightness() -> float:
 	"""Returns a value 0.0-1.0 based on how much visible text is on screen"""
-	var text = _output_text
+	if not output:
+		return 0.05
 
-	# Count only visible characters (not newlines, spaces at line ends)
+	# Get only the visible portion of text
+	var visible_lines = output.get_visible_line_count()
+	var total_lines = output.get_line_count()
+	var scroll_bar = output.get_v_scroll_bar()
+
+	# Calculate which lines are visible based on scroll position
+	var scroll_ratio = 0.0
+	if scroll_bar and scroll_bar.max_value > 0:
+		scroll_ratio = scroll_bar.value / scroll_bar.max_value
+
+	# Get the text lines
+	var lines = _output_text.split("\n")
+	var start_line = 0
+	var end_line = lines.size()
+
+	# Estimate visible range (take last N lines if at bottom, or calculate from scroll)
+	if lines.size() > visible_lines:
+		if scroll_ratio >= 0.95:  # At or near bottom
+			start_line = lines.size() - visible_lines
+		else:
+			start_line = int(scroll_ratio * (lines.size() - visible_lines))
+		end_line = min(start_line + visible_lines, lines.size())
+
+	# Count visible characters in only the visible lines
 	var visible_chars = 0
-	for c in text:
-		if c != "\n" and c != "\r" and c != " " and c != "\t":
-			visible_chars += 1
+	for i in range(start_line, end_line):
+		if i < lines.size():
+			for c in lines[i]:
+				if c != " " and c != "\t":
+					visible_chars += 1
 
 	# Full screen is roughly 1600 visible characters (80x20 of actual text)
 	# Scale from 0.05 (nearly empty/cursor only) to 1.0 (full)
@@ -840,9 +983,10 @@ func get_screen_brightness() -> float:
 	return 0.05 + (fill_ratio * 0.95)
 
 
-func _scroll_to_bottom() -> void:
-	if output:
+func _scroll_to_bottom(force: bool = false) -> void:
+	if output and (force or _should_scroll_to_bottom):
 		output.scroll_to_line(output.get_line_count())
+		_should_scroll_to_bottom = false
 
 
 # ===== BUILT-IN COMMANDS =====
@@ -850,25 +994,28 @@ func _scroll_to_bottom() -> void:
 func _cmd_dir(args: Array) -> void:
 	var target_drive = current_drive
 	var target_path = current_path
+	var show_all = false  # /A switch to show hidden/system files
 
-	if args.size() > 0:
-		var arg = args[0].to_upper()
-		# Handle drive letter
-		if arg == "A:" or arg == "A":
+	# Parse arguments
+	for arg in args:
+		var upper_arg = arg.to_upper()
+		if upper_arg == "/A" or upper_arg == "/AH" or upper_arg == "/AS":
+			show_all = true
+		elif upper_arg == "A:" or upper_arg == "A":
 			target_drive = "A:"
 			target_path = "\\"
-		elif arg == "C:" or arg == "C":
+		elif upper_arg == "C:" or upper_arg == "C":
 			target_drive = "C:"
 			target_path = "\\"
-		elif arg.begins_with("A:\\"):
+		elif upper_arg.begins_with("A:\\"):
 			target_drive = "A:"
-			target_path = "\\" + arg.substr(3)
-		elif arg.begins_with("C:\\"):
+			target_path = "\\" + upper_arg.substr(3)
+		elif upper_arg.begins_with("C:\\"):
 			target_drive = "C:"
-			target_path = "\\" + arg.substr(3)
-		else:
-			# Relative path
-			target_path = _resolve_path(arg)
+			target_path = "\\" + upper_arg.substr(3)
+		elif not upper_arg.begins_with("/"):
+			# Relative path (not a switch)
+			target_path = _resolve_path(upper_arg)
 
 	if target_drive == "A:" and not floppy_disk_inserted:
 		print_line("")
@@ -916,6 +1063,10 @@ func _cmd_dir(args: Array) -> void:
 		if not file_key.ends_with("\\"):
 			file_key += "\\"
 		file_key += item
+
+		# Skip hidden files unless /A switch used
+		if not show_all and _is_hidden(file_key):
+			continue
 
 		if fs_to_use.has(file_key):
 			if fs_to_use[file_key].type == "dir":
@@ -967,8 +1118,52 @@ func _cmd_type(args: Array) -> void:
 func _cmd_del(args: Array) -> void:
 	if args.is_empty():
 		print_line("Required parameter missing")
+		print_line("")
 		return
-	print_line("Access denied")
+
+	var filename = args[0].to_upper()
+	var file_key = _get_full_path(filename)
+	var fs_to_use = filesystem if current_drive == "C:" else floppy_filesystem
+
+	if not fs_to_use.has(file_key):
+		print_line("File not found - " + filename)
+		print_line("")
+		return
+
+	if fs_to_use[file_key].type == "dir":
+		print_line("Invalid file name")
+		print_line("Use RD to remove directories")
+		print_line("")
+		return
+
+	# Check if it's a protected file
+	if _is_readonly(file_key):
+		print_line("Access denied - File is read-only")
+		print_line("")
+		return
+	if _is_system(file_key):
+		print_line("Access denied - System file")
+		print_line("")
+		return
+
+	# Remove from parent directory contents
+	var parent_key = _get_dos_dir(file_key)
+	var file_name_only = _get_dos_filename(file_key)
+	if fs_to_use.has(parent_key) and fs_to_use[parent_key].type == "dir":
+		var idx = fs_to_use[parent_key].contents.find(file_name_only)
+		if idx >= 0:
+			fs_to_use[parent_key].contents.remove_at(idx)
+
+	# Remove the file
+	fs_to_use.erase(file_key)
+
+	_notify_filesystem_change()
+
+	# Sync via WebSocket (only for C: drive)
+	if current_drive == "C:" and OnlineManager.is_online and OnlineManager.is_registered:
+		OnlineManager.delete_file(file_key)
+
+	print_line("")
 
 
 func _cmd_date(_args: Array) -> void:
@@ -994,7 +1189,7 @@ func _cmd_help(_args: Array) -> void:
 	print_line("SHADOW-DOS Commands:")
 	print_line("")
 	print_line("File Commands:")
-	print_line("  DIR          - Display directory contents")
+	print_line("  DIR [/A]     - Display directory (/A=show hidden)")
 	print_line("  CD/CHDIR     - Change current directory")
 	print_line("  MD/MKDIR     - Create a directory")
 	print_line("  RD/RMDIR     - Remove a directory")
@@ -1002,8 +1197,9 @@ func _cmd_help(_args: Array) -> void:
 	print_line("  REN/RENAME   - Rename a file")
 	print_line("  DEL          - Delete files")
 	print_line("  TYPE         - Display file contents")
-	print_line("  ATTRIB       - Display file attributes")
+	print_line("  ATTRIB       - Display/change file attributes")
 	print_line("  TREE         - Display directory tree")
+	print_line("  VERSION      - File version history")
 	print_line("")
 	print_line("System Commands:")
 	print_line("  CLS          - Clear screen")
@@ -1034,6 +1230,7 @@ func _cmd_help(_args: Array) -> void:
 	print_line("  A: or C:     - Switch to drive")
 	print_line("")
 	print_line("Programs:")
+	print_line("  EDIT         - Full-screen text editor")
 	print_line("  WD.EXE       - War Dialer (from floppy)")
 	print_line("")
 
@@ -1222,13 +1419,14 @@ func _get_full_path(path: String) -> String:
 
 
 func _notify_filesystem_change() -> void:
-	"""Notify that the filesystem has changed - triggers local save and server sync"""
+	"""Notify that the filesystem has changed - triggers local save"""
+	# Don't re-sync when applying remote changes
+	if _applying_remote_change:
+		return
+
 	# Mark session dirty for local save
 	SessionManager.mark_dirty()
-
-	# Queue sync to server if online and registered
-	if OnlineManager.is_online and OnlineManager.is_registered:
-		OnlineManager.sync_filesystem(filesystem)
+	# Note: Individual file operations now sync via WebSocket, not full filesystem sync
 
 
 func _get_dos_filename(path: String) -> String:
@@ -1251,15 +1449,88 @@ func _get_dos_dir(path: String) -> String:
 	return path
 
 
+# ===== FILE ATTRIBUTE HELPERS =====
+
+func _get_file_attr(path: String) -> String:
+	"""Get the attributes string for a file/directory"""
+	var fs_to_use = filesystem if path.begins_with("C:") else floppy_filesystem
+	if fs_to_use.has(path):
+		return fs_to_use[path].get("attr", "")
+	return ""
+
+
+func _has_attr(path: String, attr: String) -> bool:
+	"""Check if a file has a specific attribute"""
+	return _get_file_attr(path).contains(attr)
+
+
+func _is_readonly(path: String) -> bool:
+	"""Check if file is read-only (R attribute)"""
+	return _has_attr(path, ATTR_READONLY)
+
+
+func _is_hidden(path: String) -> bool:
+	"""Check if file is hidden (H attribute)"""
+	return _has_attr(path, ATTR_HIDDEN)
+
+
+func _is_system(path: String) -> bool:
+	"""Check if file is a system file (S attribute)"""
+	return _has_attr(path, ATTR_SYSTEM)
+
+
+func _set_file_attr(path: String, attr: String) -> bool:
+	"""Set the attributes string for a file. Returns true if successful."""
+	var fs_to_use = filesystem if path.begins_with("C:") else floppy_filesystem
+	if not fs_to_use.has(path):
+		return false
+	fs_to_use[path]["attr"] = attr
+	return true
+
+
+func _add_attr(path: String, attr: String) -> bool:
+	"""Add an attribute to a file. Returns true if successful."""
+	var current = _get_file_attr(path)
+	if current.contains(attr):
+		return true  # Already has it
+	return _set_file_attr(path, current + attr)
+
+
+func _remove_attr(path: String, attr: String) -> bool:
+	"""Remove an attribute from a file. Returns true if successful."""
+	var current = _get_file_attr(path)
+	if not current.contains(attr):
+		return true  # Already doesn't have it
+	return _set_file_attr(path, current.replace(attr, ""))
+
+
+func _format_attr_display(attr: String) -> String:
+	"""Format attributes for display like DOS ATTRIB command"""
+	var r = "R" if attr.contains(ATTR_READONLY) else " "
+	var a = "A" if attr.contains(ATTR_ARCHIVE) else " "
+	var s = "S" if attr.contains(ATTR_SYSTEM) else " "
+	var h = "H" if attr.contains(ATTR_HIDDEN) else " "
+	return "%s  %s%s%s" % [a, s, h, r]
+
+
+func _build_file_metadata(path: String) -> Dictionary:
+	"""Build metadata dictionary for server sync, including attr"""
+	var metadata := {}
+	var attr = _get_file_attr(path)
+	if not attr.is_empty():
+		metadata["attr"] = attr
+	return metadata
+
+
 # ===== FILESYSTEM SYNC HELPERS =====
 
 func _is_protected_path(path: String) -> bool:
-	"""Check if a path is protected (system files that shouldn't be overwritten)"""
+	"""Check if a path is protected (read-only or system attribute)"""
 	if path == "C:\\":
 		return true
-	for prefix in PROTECTED_PREFIXES:
-		if path == prefix or path.begins_with(prefix + "\\"):
-			return true
+	# Check file attributes - R or S means protected
+	if _is_readonly(path) or _is_system(path):
+		return true
 	return false
 
 
@@ -1354,6 +1625,105 @@ func _fetch_and_apply_filesystem() -> void:
 		apply_fetched_filesystem(result_filesystem)
 
 
+# ===== REMOTE CHANGE HANDLERS =====
+
+func _on_remote_file_change(path: String, content: String, file_type: String, program: String, metadata: Dictionary) -> void:
+	"""Handle file change from another device via WebSocket"""
+	if _is_protected_path(path):
+		return  # Don't allow remote changes to protected paths
+
+	_applying_remote_change = true
+
+	# Update local filesystem
+	var entry := {"type": file_type}
+	if file_type == "file":
+		entry["content"] = content
+	elif file_type == "exe" and not program.is_empty():
+		entry["program"] = program
+	elif file_type == "dir":
+		entry["contents"] = []
+
+	# Apply attributes from metadata
+	if metadata.has("attr"):
+		entry["attr"] = metadata.get("attr", "")
+
+	filesystem[path] = entry
+
+	# Update parent directory contents
+	var parent_path = _get_dos_dir(path)
+	var filename = _get_dos_filename(path)
+	if filesystem.has(parent_path) and filesystem[parent_path].type == "dir":
+		if filename not in filesystem[parent_path].contents:
+			filesystem[parent_path].contents.append(filename)
+
+	print("[Terminal] Remote change applied: %s" % path)
+	_applying_remote_change = false
+
+
+func _on_remote_file_delete(path: String) -> void:
+	"""Handle file deletion from another device via WebSocket"""
+	if _is_protected_path(path):
+		return  # Don't allow remote deletions of protected paths
+
+	_applying_remote_change = true
+
+	if filesystem.has(path):
+		# Remove from parent directory contents
+		var parent_path = _get_dos_dir(path)
+		var filename = _get_dos_filename(path)
+		if filesystem.has(parent_path) and filesystem[parent_path].type == "dir":
+			var idx = filesystem[parent_path].contents.find(filename)
+			if idx >= 0:
+				filesystem[parent_path].contents.remove_at(idx)
+
+		# Remove the file/directory
+		filesystem.erase(path)
+		print("[Terminal] Remote delete applied: %s" % path)
+
+	_applying_remote_change = false
+
+
+# Variables for VERSION command async handling
+var _pending_version_path: String = ""
+
+func _on_versions_received(path: String, current: Dictionary, versions: Array) -> void:
+	"""Handle version history response"""
+	if path != _pending_version_path:
+		return
+
+	print_line("")
+	print_line("File: " + path)
+	if current and not current.is_empty():
+		print_line("Current size: %d bytes" % current.get("file_size", 0))
+	else:
+		print_line("File not found (may have been deleted)")
+	print_line("")
+
+	if versions.is_empty():
+		print_line("No version history available.")
+	else:
+		print_line("Version History:")
+		for v in versions:
+			var size_str = "%d bytes" % v.get("file_size", 0)
+			print_line("  %d. %s  (%s)" % [v.get("version", 0), v.get("created_at", ""), size_str])
+
+	print_line("")
+	print_line("Use VERSION <file> RESTORE <n> to restore.")
+	print_line("")
+	_pending_version_path = ""
+	_show_prompt()
+
+
+func _on_version_restored(path: String, version: int) -> void:
+	"""Handle version restore confirmation"""
+	print_line("")
+	print_line("Restored %s to version %d" % [path, version])
+	print_line("")
+
+	# Refresh from server
+	OnlineManager.fetch_filesystem()
+
+
 # ===== NEW DOS COMMANDS =====
 
 func _cmd_cd(args: Array) -> void:
@@ -1431,7 +1801,7 @@ func _cmd_md(args: Array) -> void:
 		print_line("")
 		return
 
-	# Create new directory
+	# Create new directory locally
 	fs_to_use[new_dir_key] = {"type": "dir", "contents": []}
 
 	# Add to parent contents
@@ -1439,6 +1809,11 @@ func _cmd_md(args: Array) -> void:
 		fs_to_use[parent_key].contents.append(dirname)
 
 	_notify_filesystem_change()
+
+	# Sync via WebSocket (only for C: drive)
+	if current_drive == "C:" and OnlineManager.is_online and OnlineManager.is_registered:
+		OnlineManager.create_directory(new_dir_key)
+
 	print_line("")
 
 
@@ -1470,6 +1845,16 @@ func _cmd_rd(args: Array) -> void:
 		print_line("")
 		return
 
+	# Check if it's a protected directory
+	if _is_readonly(dir_key):
+		print_line("Access denied - Directory is read-only")
+		print_line("")
+		return
+	if _is_system(dir_key):
+		print_line("Access denied - System directory")
+		print_line("")
+		return
+
 	if fs_to_use[dir_key].contents.size() > 0:
 		print_line("Invalid path, not directory,")
 		print_line("or directory not empty")
@@ -1486,6 +1871,11 @@ func _cmd_rd(args: Array) -> void:
 			fs_to_use[parent_key].contents.remove_at(idx)
 
 	_notify_filesystem_change()
+
+	# Sync via WebSocket (only for C: drive)
+	if current_drive == "C:" and OnlineManager.is_online and OnlineManager.is_registered:
+		OnlineManager.remove_directory(dir_key)
+
 	print_line("")
 
 
@@ -1513,6 +1903,17 @@ func _cmd_copy(args: Array) -> void:
 
 	var dest_key = _get_full_path(dest)
 
+	# Check if destination is a protected file (only if it exists)
+	if fs_to_use.has(dest_key):
+		if _is_readonly(dest_key):
+			print_line("Access denied - Destination is read-only")
+			print_line("")
+			return
+		if _is_system(dest_key):
+			print_line("Access denied - Cannot overwrite system file")
+			print_line("")
+			return
+
 	# Copy the file
 	fs_to_use[dest_key] = fs_to_use[source_key].duplicate()
 
@@ -1524,6 +1925,16 @@ func _cmd_copy(args: Array) -> void:
 			fs_to_use[dest_dir].contents.append(dest_filename)
 
 	_notify_filesystem_change()
+
+	# Sync via WebSocket (only for C: drive)
+	if current_drive == "C:" and OnlineManager.is_online and OnlineManager.is_registered:
+		var file_data = fs_to_use[dest_key]
+		var content = file_data.get("content", "")
+		var file_type = file_data.get("type", "file")
+		var program = file_data.get("program", "")
+		var metadata = _build_file_metadata(dest_key)
+		OnlineManager.create_or_update_file(dest_key, content, file_type, program, metadata)
+
 	print_line("        1 file(s) copied")
 	print_line("")
 
@@ -1545,6 +1956,16 @@ func _cmd_rename(args: Array) -> void:
 		print_line("")
 		return
 
+	# Check if it's a protected file
+	if _is_readonly(old_key):
+		print_line("Access denied - File is read-only")
+		print_line("")
+		return
+	if _is_system(old_key):
+		print_line("Access denied - System file")
+		print_line("")
+		return
+
 	# Create new entry with new name
 	var parent_key = _get_dos_dir(old_key)
 	var new_key = parent_key
@@ -1552,7 +1973,8 @@ func _cmd_rename(args: Array) -> void:
 		new_key += "\\"
 	new_key += newname
 
-	fs_to_use[new_key] = fs_to_use[old_key]
+	var file_data = fs_to_use[old_key].duplicate()
+	fs_to_use[new_key] = file_data
 	fs_to_use.erase(old_key)
 
 	# Update parent contents
@@ -1563,6 +1985,16 @@ func _cmd_rename(args: Array) -> void:
 			fs_to_use[parent_key].contents[idx] = newname
 
 	_notify_filesystem_change()
+
+	# Sync via WebSocket (only for C: drive) - rename = delete old + create new
+	if current_drive == "C:" and OnlineManager.is_online and OnlineManager.is_registered:
+		OnlineManager.delete_file(old_key)
+		var content = file_data.get("content", "")
+		var file_type = file_data.get("type", "file")
+		var program = file_data.get("program", "")
+		var metadata = _build_file_metadata(new_key)
+		OnlineManager.create_or_update_file(new_key, content, file_type, program, metadata)
+
 	print_line("")
 
 
@@ -1709,6 +2141,13 @@ func _cmd_sort(args: Array) -> void:
 
 
 func _cmd_attrib(args: Array) -> void:
+	"""Display or change file attributes.
+	Usage: ATTRIB [+R|-R] [+A|-A] [+S|-S] [+H|-H] [filename]
+	  +R/-R  Set/clear Read-only attribute
+	  +A/-A  Set/clear Archive attribute
+	  +S/-S  Set/clear System attribute
+	  +H/-H  Set/clear Hidden attribute
+	"""
 	if args.is_empty():
 		# Show attributes for all files in current directory
 		var dir_key = current_drive + current_path
@@ -1720,28 +2159,97 @@ func _cmd_attrib(args: Array) -> void:
 		print_line("")
 		if fs_to_use.has(dir_key) and fs_to_use[dir_key].type == "dir":
 			for item in fs_to_use[dir_key].contents:
-				var file_key = dir_key + "\\" + item
-				var attrs = "A    "  # Archive attribute
-				if fs_to_use.has(file_key) and fs_to_use[file_key].type == "dir":
-					attrs = "   D "
-				print_line("%s  %s\\%s" % [attrs, dir_key, item])
+				var file_key = dir_key
+				if not file_key.ends_with("\\"):
+					file_key += "\\"
+				file_key += item
+				var attr_str = _get_file_attr(file_key)
+				var display = _format_attr_display(attr_str)
+				print_line("%s  %s" % [display, file_key])
 		print_line("")
 		return
 
-	var filename = args[0].to_upper()
-	var file_key = _get_full_path(filename)
+	# Parse arguments for attribute changes and filename
+	var add_attrs: Array[String] = []
+	var remove_attrs: Array[String] = []
+	var filename = ""
+
+	for arg in args:
+		var upper_arg = arg.to_upper()
+		if upper_arg.begins_with("+"):
+			var attr = upper_arg.substr(1)
+			if attr in [ATTR_READONLY, ATTR_ARCHIVE, ATTR_SYSTEM, ATTR_HIDDEN]:
+				add_attrs.append(attr)
+			else:
+				print_line("Invalid attribute: " + arg)
+				print_line("")
+				return
+		elif upper_arg.begins_with("-"):
+			var attr = upper_arg.substr(1)
+			if attr in [ATTR_READONLY, ATTR_ARCHIVE, ATTR_SYSTEM, ATTR_HIDDEN]:
+				remove_attrs.append(attr)
+			else:
+				print_line("Invalid attribute: " + arg)
+				print_line("")
+				return
+		else:
+			filename = upper_arg
+
+	# If no filename specified, show usage
+	if filename.is_empty() and (add_attrs.size() > 0 or remove_attrs.size() > 0):
+		print_line("Required parameter missing")
+		print_line("")
+		return
+
+	var file_key = _get_full_path(filename) if not filename.is_empty() else ""
 	var fs_to_use = filesystem if current_drive == "C:" else floppy_filesystem
 
-	if fs_to_use.has(file_key):
-		var attrs = "A    "
-		if fs_to_use[file_key].type == "dir":
-			attrs = "   D "
-		print_line("")
-		print_line("%s  %s" % [attrs, file_key])
-		print_line("")
-	else:
+	# If just filename, show its attributes
+	if add_attrs.is_empty() and remove_attrs.is_empty():
+		if not filename.is_empty():
+			if fs_to_use.has(file_key):
+				var attr_str = _get_file_attr(file_key)
+				var display = _format_attr_display(attr_str)
+				print_line("")
+				print_line("%s  %s" % [display, file_key])
+				print_line("")
+			else:
+				print_line("File not found - " + filename)
+				print_line("")
+		return
+
+	# Modifying attributes
+	if not fs_to_use.has(file_key):
 		print_line("File not found - " + filename)
 		print_line("")
+		return
+
+	# Check if trying to modify system file's S attribute
+	if ATTR_SYSTEM in remove_attrs and _is_system(file_key):
+		# Allow removing S only if not in DEFAULT_FILESYSTEM
+		if DEFAULT_FILESYSTEM.has(file_key):
+			print_line("Access denied - Cannot modify system file")
+			print_line("")
+			return
+
+	# Apply attribute changes
+	for attr in remove_attrs:
+		_remove_attr(file_key, attr)
+	for attr in add_attrs:
+		_add_attr(file_key, attr)
+
+	_notify_filesystem_change()
+
+	# Sync attribute change to server
+	if current_drive == "C:" and OnlineManager.is_online and OnlineManager.is_registered:
+		var file_data = fs_to_use[file_key]
+		var content = file_data.get("content", "")
+		var file_type = file_data.get("type", "file")
+		var program = file_data.get("program", "")
+		var metadata = _build_file_metadata(file_key)
+		OnlineManager.create_or_update_file(file_key, content, file_type, program, metadata)
+
+	print_line("")
 
 
 func _cmd_tree(args: Array) -> void:
@@ -1869,3 +2377,52 @@ func _cmd_crt(_args: Array) -> void:
 	else:
 		print_line("Error: Could not access CRT shader")
 	print_line("")
+
+
+func _cmd_edit(args: Array) -> void:
+	"""Launch the full-screen text editor"""
+	var scene = load("res://scenes/programs/editor.tscn")
+	if scene:
+		_start_program(scene, args)
+	else:
+		print_line("Error: Editor not found")
+		print_line("")
+
+
+func _cmd_version(args: Array) -> void:
+	"""Show file version history or restore a previous version"""
+	if args.is_empty():
+		print_line("Usage: VERSION <filename>")
+		print_line("       VERSION <filename> RESTORE <n>")
+		print_line("")
+		print_line("Shows version history for a file or restores")
+		print_line("a previous version.")
+		print_line("")
+		return
+
+	if not OnlineManager.is_online or not OnlineManager.is_registered:
+		print_line("Error: Must be online to access version history")
+		print_line("")
+		return
+
+	var filename = args[0].to_upper()
+	var file_key = _get_full_path(filename)
+
+	# Check for RESTORE subcommand
+	if args.size() >= 3 and args[1].to_upper() == "RESTORE":
+		var version_num = int(args[2])
+		if version_num < 1 or version_num > 5:
+			print_line("Invalid version number (1-5)")
+			print_line("")
+			return
+
+		print_line("Restoring %s to version %d..." % [filename, version_num])
+		OnlineManager.restore_file_version(file_key, version_num)
+		# Response handled by _on_version_restored signal
+		return
+
+	# Request version history
+	print_line("Fetching version history for %s..." % filename)
+	_pending_version_path = file_key
+	OnlineManager.get_file_versions(file_key)
+	# Response handled by _on_versions_received signal - prompt shown there
