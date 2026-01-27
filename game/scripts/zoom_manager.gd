@@ -43,6 +43,12 @@ var light_container: Control = null  # Center-anchored container for lights/part
 var light_occluder_container: Node2D = null
 var dust_particles: GPUParticles2D = null
 
+# Overhead light system (controlled by wall switch)
+var overhead_light: PointLight2D = null
+var light_switch: Control = null
+var light_switch_toggle: ColorRect = null
+var overhead_light_on: bool = false
+
 # Lighting constants
 const BLINDS_LIGHT_FACTOR = {
 	BlindsState.CLOSED: 0.08,   # Tiny amount through gaps
@@ -220,6 +226,9 @@ func _create_room_elements() -> void:
 	# Create the lighting system (lights, ambient, occluders)
 	_create_lighting_system()
 
+	# Create wall light switch and overhead light
+	_create_light_switch()
+
 	# Create desk extensions AFTER other elements are set up
 	# These need to be added to zoom_container directly (not room_elements)
 	# so they render ON TOP of the main Desk
@@ -320,11 +329,38 @@ func _create_extended_background() -> void:
 
 
 func _create_shelf_items() -> void:
-	# Only books on the top shelf (moved higher to y=-480)
-	_create_books_on_shelf(-1350.0, -480, "upper")
+	# Hack books image on left side of top shelf (replaces procedural books)
+	var hack_books_texture = load("res://assets/hack-books-787772.png")
+	if hack_books_texture:
+		var hack_books = TextureRect.new()
+		hack_books.name = "HackBooks"
+		hack_books.texture = hack_books_texture
+		hack_books.set_anchors_preset(Control.PRESET_CENTER)
+		hack_books.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		hack_books.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+		hack_books.size = Vector2(540, 390)  # Bigger size
+		hack_books.position = Vector2(-1420, -725)  # Left side of top shelf, resting on shelf
+		hack_books.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		hack_books.modulate = Color(0.6, 0.55, 0.5)  # Darker, slightly warm tint
+		room_elements.add_child(hack_books)
 
-	# Box on upper shelf (adjusted for higher shelf position)
-	_create_storage_box(Vector2(-1000, -530), Vector2(70, 50), Color(0.45, 0.4, 0.3))
+	# Tech books image on right side of top shelf
+	var tech_books_texture = load("res://assets/tech-books-443311.png")
+	if tech_books_texture:
+		var tech_books = TextureRect.new()
+		tech_books.name = "TechBooks"
+		tech_books.texture = tech_books_texture
+		tech_books.set_anchors_preset(Control.PRESET_CENTER)
+		# Scale to fit nicely on shelf (adjust size as needed)
+		tech_books.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tech_books.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+		tech_books.size = Vector2(400, 280)  # Much bigger
+		tech_books.position = Vector2(-900, -654)  # Right side of top shelf, resting on shelf top edge
+		# Use linear filtering for smooth scaling (not pixelated)
+		tech_books.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		# Darken with modulate to simulate shelf shadow/ambient lighting
+		tech_books.modulate = Color(0.6, 0.55, 0.5)  # Darker, slightly warm tint
+		room_elements.add_child(tech_books)
 
 	# Box on middle shelf
 	_create_storage_box(Vector2(-1100, -355), Vector2(80, 55), Color(0.5, 0.45, 0.35))
@@ -1032,6 +1068,25 @@ func _create_extended_desk() -> void:
 	plug_highlight.color = Color(0.22, 0.22, 0.22)
 	desk_extensions.add_child(plug_highlight)
 
+	# === UNDER-DESK SHADOW ===
+	# Dark gradient/shadow over the plug and outlet area (under the desk)
+	var shadow_under_desk = ColorRect.new()
+	shadow_under_desk.name = "UnderDeskShadow"
+	shadow_under_desk.set_anchors_preset(Control.PRESET_CENTER)
+	shadow_under_desk.size = Vector2(200, 180)
+	shadow_under_desk.position = Vector2(outlet_x - 70, outlet_y - 60)
+	shadow_under_desk.color = Color(0.0, 0.0, 0.0, 0.4)  # Semi-transparent black
+	desk_extensions.add_child(shadow_under_desk)
+
+	# Deeper shadow closer to desk bottom
+	var shadow_deep = ColorRect.new()
+	shadow_deep.name = "UnderDeskShadowDeep"
+	shadow_deep.set_anchors_preset(Control.PRESET_CENTER)
+	shadow_deep.size = Vector2(200, 60)
+	shadow_deep.position = Vector2(outlet_x - 70, outlet_y - 60)
+	shadow_deep.color = Color(0.0, 0.0, 0.0, 0.3)  # Additional darkness at top
+	desk_extensions.add_child(shadow_deep)
+
 	print("[ZoomManager] Desk extensions created")
 
 
@@ -1186,6 +1241,140 @@ func _create_lighting_system() -> void:
 	_update_lighting()
 
 	print("[ZoomManager] Lighting system created")
+
+
+func _create_light_switch() -> void:
+	# Create a wall light switch to the left of the lava lamp
+	# LavaLamp is at offset_left = -600 from center, so switch is around -700
+
+	var switch_x = -720
+	var switch_y = -50  # Wall height, accessible
+
+	# White faceplate
+	var faceplate = ColorRect.new()
+	faceplate.name = "LightSwitchPlate"
+	faceplate.set_anchors_preset(Control.PRESET_CENTER)
+	faceplate.size = Vector2(40, 70)
+	faceplate.position = Vector2(switch_x, switch_y)
+	faceplate.color = Color(0.92, 0.9, 0.88)  # Off-white plastic
+	room_elements.add_child(faceplate)
+
+	# Faceplate border shadow
+	var plate_border = ColorRect.new()
+	plate_border.name = "LightSwitchBorder"
+	plate_border.set_anchors_preset(Control.PRESET_CENTER)
+	plate_border.size = Vector2(36, 66)
+	plate_border.position = Vector2(switch_x + 2, switch_y + 2)
+	plate_border.color = Color(0.82, 0.8, 0.78)
+	room_elements.add_child(plate_border)
+
+	# Inner plate
+	var plate_inner = ColorRect.new()
+	plate_inner.name = "LightSwitchInner"
+	plate_inner.set_anchors_preset(Control.PRESET_CENTER)
+	plate_inner.size = Vector2(32, 62)
+	plate_inner.position = Vector2(switch_x + 4, switch_y + 4)
+	plate_inner.color = Color(0.94, 0.92, 0.9)
+	room_elements.add_child(plate_inner)
+
+	# Toggle switch slot (dark background)
+	var switch_slot = ColorRect.new()
+	switch_slot.name = "SwitchSlot"
+	switch_slot.set_anchors_preset(Control.PRESET_CENTER)
+	switch_slot.size = Vector2(16, 30)
+	switch_slot.position = Vector2(switch_x + 12, switch_y + 20)
+	switch_slot.color = Color(0.15, 0.12, 0.1)
+	room_elements.add_child(switch_slot)
+
+	# The clickable toggle switch
+	light_switch = Control.new()
+	light_switch.name = "LightSwitch"
+	light_switch.set_anchors_preset(Control.PRESET_CENTER)
+	light_switch.size = Vector2(40, 70)
+	light_switch.position = Vector2(switch_x, switch_y)
+	light_switch.mouse_filter = Control.MOUSE_FILTER_STOP
+	light_switch.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	room_elements.add_child(light_switch)
+
+	# Toggle lever (visible part)
+	light_switch_toggle = ColorRect.new()
+	light_switch_toggle.name = "SwitchToggle"
+	light_switch_toggle.set_anchors_preset(Control.PRESET_CENTER)
+	light_switch_toggle.size = Vector2(12, 18)
+	light_switch_toggle.position = Vector2(switch_x + 14, switch_y + 28)  # Down position (off)
+	light_switch_toggle.color = Color(0.85, 0.83, 0.8)
+	room_elements.add_child(light_switch_toggle)
+
+	# Connect click handler
+	light_switch.gui_input.connect(_on_light_switch_input)
+
+	# Create overhead light (off-screen above bookshelf area)
+	_create_overhead_light()
+
+	print("[ZoomManager] Light switch created")
+
+
+func _create_overhead_light() -> void:
+	# Create gradient texture for overhead light
+	var gradient = Gradient.new()
+	gradient.set_offset(0, 0.0)
+	gradient.set_color(0, Color(1, 1, 1, 1))
+	gradient.add_point(0.2, Color(1, 1, 1, 0.8))
+	gradient.add_point(0.5, Color(1, 1, 1, 0.4))
+	gradient.add_point(0.8, Color(1, 1, 1, 0.1))
+	gradient.set_offset(gradient.get_point_count() - 1, 1.0)
+	gradient.set_color(gradient.get_point_count() - 1, Color(1, 1, 1, 0))
+
+	var texture = GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.width = 512
+	texture.height = 512
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(1.0, 0.5)
+
+	# Overhead ceiling light - positioned centrally to illuminate entire scene
+	overhead_light = PointLight2D.new()
+	overhead_light.name = "OverheadLight"
+	overhead_light.position = Vector2(0, -600)  # Central position, above desk area
+	overhead_light.texture = texture
+	overhead_light.texture_scale = 30.0  # Very large coverage for whole room
+	overhead_light.color = Color(1.0, 0.95, 0.85)  # Warm incandescent
+	overhead_light.energy = 0.0  # Start off
+	overhead_light.enabled = false
+	overhead_light.shadow_enabled = false  # No shadows from overhead room light
+	overhead_light.blend_mode = Light2D.BLEND_MODE_ADD
+	light_container.add_child(overhead_light)
+
+	print("[ZoomManager] Overhead light created")
+
+
+func _on_light_switch_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_toggle_overhead_light()
+
+
+func _toggle_overhead_light() -> void:
+	overhead_light_on = not overhead_light_on
+
+	if overhead_light_on:
+		# Turn on - move toggle up, enable light
+		if light_switch_toggle:
+			light_switch_toggle.position.y -= 10  # Move toggle up
+		if overhead_light:
+			overhead_light.enabled = true
+			var tween = create_tween()
+			tween.tween_property(overhead_light, "energy", 0.7, 0.2)  # Balanced brightness
+		print("[ZoomManager] Overhead light ON")
+	else:
+		# Turn off - move toggle down, disable light
+		if light_switch_toggle:
+			light_switch_toggle.position.y += 10  # Move toggle down
+		if overhead_light:
+			var tween = create_tween()
+			tween.tween_property(overhead_light, "energy", 0.0, 0.15)
+			tween.tween_callback(func(): overhead_light.enabled = false)
+		print("[ZoomManager] Overhead light OFF")
 
 
 func _create_dust_particles() -> void:
