@@ -13,6 +13,7 @@
 [ext_resource type="Texture2D" path="res://assets/desk-phone-3981721.png" id="11_phone"]
 [ext_resource type="Script" path="res://scripts/lava_lamp.gd" id="12_lavalamp"]
 [ext_resource type="Script" path="res://scripts/phone_bulb_light.gd" id="13_bulblight"]
+[ext_resource type="Script" path="res://scripts/zoom_manager.gd" id="14_zoom"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_crt"]
 shader = ExtResource("3_crt")
@@ -412,20 +413,20 @@ grow_vertical = 2
 script = ExtResource("12_lavalamp")
 
 [node name="WallLight" type="PointLight2D" parent="LavaLamp"]
-position = Vector2(50, 100)
+position = Vector2(50, 80)
 enabled = false
 color = Color(0.3, 0.95, 0.5, 1)
 energy = 0.0
 texture = SubResource("GradientTexture2D_walllight")
-texture_scale = 2.0
+texture_scale = 5.0
 
 [node name="DeskLight" type="PointLight2D" parent="LavaLamp"]
-position = Vector2(50, 280)
+position = Vector2(50, 300)
 enabled = false
 color = Color(0.3, 0.95, 0.5, 1)
 energy = 0.0
 texture = SubResource("GradientTexture2D_walllight")
-texture_scale = 1.2
+texture_scale = 4.0
 
 [node name="LampBody" type="ColorRect" parent="LavaLamp"]
 material = SubResource("ShaderMaterial_lava")
@@ -3327,3 +3328,6 @@ volume_db = -5.0
 
 [node name="HDDStartup" type="AudioStreamPlayer" parent="AudioPlayers"]
 volume_db = -3.0
+
+[node name="ZoomManager" type="Node" parent="."]
+script = ExtResource("14_zoom")

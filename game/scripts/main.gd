@@ -26,6 +26,9 @@ var _pending_resize: bool = false
 @onready var monitor_desk_light: PointLight2D = $ComputerFrame/Monitor/MonitorDeskLight
 @onready var screen_backlight: PointLight2D = $ComputerFrame/Monitor/ScreenBacklight
 
+# Zoom manager (will be found in _ready)
+var zoom_manager: Node = null
+
 # Lava lamp
 @onready var lava_lamp = $LavaLamp
 
@@ -100,20 +103,20 @@ func _ready() -> void:
 	print("[Main] _ready called - main.gd is running")
 	# Setup audio
 	_setup_audio()
-	
+
 	# Connect power button
 	if power_button:
 		power_button.gui_input.connect(_on_power_button_input)
 		print("[Main] Power button connected")
 	else:
 		print("[Main] WARNING: Power button not found!")
-	
+
 	# Lava lamp handles its own power button via lava_lamp.gd script
-	
+
 	# Initialize computer state
 	_update_power_state()
 	print("[Main] Computer state: ", computer_state)
-	
+
 	# Connect to game state signals
 	if GameState.has_signal("modem_connected"):
 		GameState.modem_connected.connect(_on_modem_connected)
@@ -137,6 +140,13 @@ func _ready() -> void:
 	get_tree().root.size_changed.connect(_on_window_size_changed)
 	# Initial resize to match current window
 	_update_subviewport_size()
+
+	# Find zoom manager (created as child node in scene)
+	zoom_manager = get_node_or_null("ZoomManager")
+	if zoom_manager:
+		print("[Main] ZoomManager found")
+	else:
+		print("[Main] WARNING: ZoomManager not found")
 
 
 func _process(delta: float) -> void:
@@ -671,12 +681,36 @@ func _set_modem_ready_leds() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	# Handle zoom with Alt + Mouse Wheel
+	if event is InputEventMouseButton and event.pressed:
+		if Input.is_key_pressed(KEY_ALT):
+			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+				if zoom_manager:
+					zoom_manager.zoom_in()
+				get_viewport().set_input_as_handled()
+				return
+			elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+				if zoom_manager:
+					zoom_manager.zoom_out()
+				get_viewport().set_input_as_handled()
+				return
+
 	if event is InputEventKey and not event.is_echo():
 		# Animate keyboard on key press AND release (ignore key repeat)
 		_animate_key(event.keycode, event.pressed)
 
 		# Only process these on key press, not release
 		if event.pressed:
+			# Tab key cycles zoom levels (don't forward to terminal)
+			if event.keycode == KEY_TAB:
+				if zoom_manager:
+					zoom_manager.cycle_zoom()
+				# Still play keyboard click
+				if keyboard_click and keyboard_click.stream:
+					keyboard_click.play()
+				get_viewport().set_input_as_handled()
+				return
+
 			# Keyboard click sound on press
 			if keyboard_click and keyboard_click.stream:
 				keyboard_click.play()
