@@ -58,14 +58,14 @@ vec2 get_lamp_shape(float y) {
     
     // Base collar (chrome ring) - 80% to 83%
     if (y < 0.83) {
-        return vec2(0.28, 2.0);  // Match body bottom width exactly
+        return vec2(0.36, 2.0);  // Wider collar for stable base
     }
-    
+
     // Base body - tapers out smoothly - 83% to 100%
     if (y <= 1.0) {
         float t = (y - 0.83) / 0.17;
-        // Start at body width, taper outward to wider base
-        float width = mix(0.28, 0.34, smoothstep(0.0, 1.0, t));
+        // Start at collar width, taper outward to wider base
+        float width = mix(0.36, 0.44, smoothstep(0.0, 1.0, t));
         return vec2(width, 2.0);
     }
     

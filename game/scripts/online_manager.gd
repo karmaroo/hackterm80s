@@ -20,7 +20,7 @@ signal versions_received(path: String, current: Dictionary, versions: Array)
 signal version_restored(path: String, version: int)
 
 # Server configuration
-const DEFAULT_SERVER_URL = "http://homelab:3000/api"
+const DEFAULT_SERVER_URL = "http://localhost:3000/api"
 const API_PORT = 3000
 const TIMEOUT_SECONDS = 5.0
 
@@ -78,8 +78,20 @@ func _ready() -> void:
 
 
 func _detect_server_url() -> void:
-	server_url = DEFAULT_SERVER_URL
-	print("[OnlineManager] Using API URL: ", server_url)
+	# For web builds, use same origin to avoid mixed content issues
+	if OS.has_feature("web"):
+		# Get the current page origin via JavaScript
+		var origin = JavaScriptBridge.eval("window.location.origin")
+		if origin:
+			server_url = str(origin) + "/api"
+			print("[OnlineManager] Web build - using origin API URL: ", server_url)
+		else:
+			# Fallback if JavaScript fails
+			server_url = DEFAULT_SERVER_URL
+			print("[OnlineManager] Web build - JavaScript failed, using default: ", server_url)
+	else:
+		server_url = DEFAULT_SERVER_URL
+		print("[OnlineManager] Using API URL: ", server_url)
 
 
 func _process(delta: float) -> void:

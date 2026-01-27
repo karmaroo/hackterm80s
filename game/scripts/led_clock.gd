@@ -37,8 +37,8 @@ func _update_time():
 	colon_bright = not colon_bright
 	var colon_color = BRIGHT_RED if colon_bright else DIM_RED
 
-	# Format time string with BBCode for colon color
-	var time_str = "%d[color=#%s]:[/color]%02d" % [hour, colon_color, minute]
+	# Format time string with BBCode for colon color and centering
+	var time_str = "[center]%d[color=#%s]:[/color]%02d[/center]" % [hour, colon_color, minute]
 
 	if time_label:
 		time_label.text = ""

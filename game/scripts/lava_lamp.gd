@@ -8,8 +8,11 @@ extends Control
 @onready var power_led: ColorRect = $PowerLED
 @onready var lamp_body: ColorRect = $LampBody
 @onready var wall_light: PointLight2D = $WallLight
+@onready var desk_light: PointLight2D = $DeskLight
 
 var lamp_on: bool = false  # Start OFF
+var button_pressed_offset: Vector2 = Vector2(2, 2)  # How much button moves when pressed
+var button_original_position: Vector2  # Store original button position
 var temperature: float = 0.0  # 0 = cold, 1 = hot
 var target_temperature: float = 0.0
 const WARMUP_SPEED: float = 0.04  # How fast it warms up (per second) - ~25 seconds to full
@@ -89,10 +92,11 @@ func _ready() -> void:
 	# Connect power button (same as computer button)
 	if power_button:
 		power_button.gui_input.connect(_on_power_button_input)
+		button_original_position = power_button.position
 		print("[LavaLamp] Power button connected")
 	else:
 		print("[LavaLamp] WARNING: Power button not found!")
-	
+
 	# Initialize to OFF state
 	lamp_on = false
 	temperature = 0.0
@@ -104,9 +108,23 @@ func _ready() -> void:
 # Exactly like _on_power_button_input in main.gd
 func _on_power_button_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			print("[LavaLamp] Power button clicked!")
-			_toggle_lamp()
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				# Button pressed down - depress visually
+				_press_button()
+			else:
+				# Button released - reset and toggle lamp
+				_release_button()
+				print("[LavaLamp] Power button clicked!")
+				_toggle_lamp()
+
+func _press_button() -> void:
+	if power_button:
+		power_button.position = button_original_position + button_pressed_offset
+
+func _release_button() -> void:
+	if power_button:
+		power_button.position = button_original_position
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -140,6 +158,10 @@ func _apply_color_preset() -> void:
 	# Update wall light color
 	if wall_light:
 		wall_light.color = preset.light
+
+	# Update desk light color
+	if desk_light:
+		desk_light.color = preset.light
 
 	# Update power LED color (when on)
 	if power_led and lamp_on:
@@ -179,10 +201,19 @@ func _update_lamp_state() -> void:
 			# Dark LED when off
 			power_led.color = Color(0.02, 0.06, 0.03, 1.0)
 
-	# Wall light enabled state depends on temperature too (stays on while cooling)
+	# Wall light - comes on immediately at full brightness when lamp turns on
 	if wall_light:
 		wall_light.enabled = lamp_on or temperature > 0.02
 		wall_light.color = COLOR_PRESETS[current_color_index].light
+		if lamp_on:
+			wall_light.energy = 2.5  # Full brightness immediately
+
+	# Desk light - same immediate on behavior
+	if desk_light:
+		desk_light.enabled = lamp_on or temperature > 0.02
+		desk_light.color = COLOR_PRESETS[current_color_index].light
+		if lamp_on:
+			desk_light.energy = 1.5  # Full brightness immediately
 
 func _update_temperature() -> void:
 	# Update shader temperature uniform
@@ -191,11 +222,18 @@ func _update_temperature() -> void:
 		if shader_mat:
 			shader_mat.set_shader_parameter("temperature", temperature)
 
-	# Update wall light intensity based on temperature
-	if wall_light:
-		wall_light.energy = temperature * 2.5  # Brighter glow to cut through ambient darkness
-		# Keep light enabled while still warm
-		wall_light.enabled = lamp_on or temperature > 0.02
+	# Only adjust light energy based on temperature when lamp is OFF (cooling down)
+	# When lamp is ON, energy is set to full in _update_lamp_state()
+	if not lamp_on:
+		# Update wall light intensity based on temperature (dimming as it cools)
+		if wall_light:
+			wall_light.energy = temperature * 2.5
+			wall_light.enabled = temperature > 0.02
+
+		# Update desk light intensity (dimming as it cools)
+		if desk_light:
+			desk_light.energy = temperature * 1.5
+			desk_light.enabled = temperature > 0.02
 
 ## Force lamp to specific state (called externally)
 func set_lamp_on(state: bool) -> void:

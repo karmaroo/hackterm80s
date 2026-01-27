@@ -102,8 +102,8 @@ func _calculate_dimensions() -> void:
 		screen_cols = int((output_size.x - 8) / 8)
 		screen_rows = int((output_size.y - 4) / 16)
 
-	# Clamp to reasonable values - allow more space
-	screen_cols = clamp(screen_cols, 40, 90)
+	# Clamp to reasonable values - support up to 80x25
+	screen_cols = clamp(screen_cols, 40, 80)
 	screen_rows = clamp(screen_rows, 12, 25)
 
 	# Content area: total rows minus header(2) and footer(2)

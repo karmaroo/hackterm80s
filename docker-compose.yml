@@ -72,6 +72,7 @@ services:
     container_name: hackterm80s-web
     ports:
       - "9080:80"
+      - "9443:443"
     depends_on:
       - hackterm-api
     networks:

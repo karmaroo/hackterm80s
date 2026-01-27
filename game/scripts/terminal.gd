@@ -977,9 +977,9 @@ func get_screen_brightness() -> float:
 				if c != " " and c != "\t":
 					visible_chars += 1
 
-	# Full screen is roughly 1600 visible characters (80x20 of actual text)
+	# Full screen is 2000 visible characters (80x25)
 	# Scale from 0.05 (nearly empty/cursor only) to 1.0 (full)
-	var fill_ratio = clamp(float(visible_chars) / 1600.0, 0.0, 1.0)
+	var fill_ratio = clamp(float(visible_chars) / 2000.0, 0.0, 1.0)
 	return 0.05 + (fill_ratio * 0.95)
 
 

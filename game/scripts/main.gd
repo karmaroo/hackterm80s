@@ -7,11 +7,24 @@ var computer_state: ComputerState = ComputerState.OFF  # Player must turn it on
 
 @onready var terminal = $ComputerFrame/Monitor/TerminalView/SubViewport/Terminal
 @onready var terminal_view: SubViewportContainer = $ComputerFrame/Monitor/TerminalView
+@onready var terminal_subviewport: SubViewport = $ComputerFrame/Monitor/TerminalView/SubViewport
+@onready var terminal_output: RichTextLabel = $ComputerFrame/Monitor/TerminalView/SubViewport/Terminal/Output
+
+# Dynamic SubViewport scaling for crisp text at any resolution
+const BASE_VIEWPORT_WIDTH: float = 1600.0
+const BASE_VIEWPORT_HEIGHT: float = 800.0
+const BASE_SUBVIEWPORT_WIDTH: int = 3300
+const BASE_SUBVIEWPORT_HEIGHT: int = 2100
+const BASE_FONT_SIZE: int = 70
+var _resize_timer: float = 0.0
+var _pending_resize: bool = false
 @onready var screen_off_overlay: ColorRect = $ComputerFrame/Monitor/ScreenOffOverlay
 @onready var power_button: Panel = $ComputerFrame/Monitor/ControlPanel/PowerButton
 @onready var power_led: ColorRect = $ComputerFrame/Monitor/ControlPanel/PowerLED
 @onready var keyboard: Control = $ComputerFrame/Keyboard
 @onready var monitor_light: PointLight2D = $ComputerFrame/Monitor/MonitorLight
+@onready var monitor_desk_light: PointLight2D = $ComputerFrame/Monitor/MonitorDeskLight
+@onready var screen_backlight: PointLight2D = $ComputerFrame/Monitor/ScreenBacklight
 
 # Lava lamp
 @onready var lava_lamp = $LavaLamp
@@ -120,14 +133,62 @@ func _ready() -> void:
 	# Initialize all LEDs to off
 	_reset_modem_leds()
 
+	# Connect to window resize for dynamic SubViewport scaling
+	get_tree().root.size_changed.connect(_on_window_size_changed)
+	# Initial resize to match current window
+	_update_subviewport_size()
 
-func _process(_delta: float) -> void:
+
+func _process(delta: float) -> void:
+	# Handle debounced SubViewport resize
+	if _pending_resize:
+		_resize_timer -= delta
+		if _resize_timer <= 0:
+			_pending_resize = false
+			_update_subviewport_size()
 	# Update monitor light based on screen content (dynamic CRT glow)
 	if (computer_state == ComputerState.ON or computer_state == ComputerState.BOOTING) and monitor_light and terminal:
 		if terminal.has_method("get_screen_brightness"):
 			var brightness = terminal.get_screen_brightness()
 			# Range 0.3 (nearly empty) to 3.0 (full screen of text)
 			monitor_light.energy = 0.3 + (brightness * 2.7)
+
+
+func _on_window_size_changed() -> void:
+	# Debounce resize - wait 0.1s after last resize event
+	_pending_resize = true
+	_resize_timer = 0.1
+
+
+func _update_subviewport_size() -> void:
+	if not terminal_subviewport or not terminal_output:
+		return
+
+	# Get current window size
+	var window_size = get_viewport().get_visible_rect().size
+
+	# Calculate scale factor based on window size vs base size
+	var scale_x = window_size.x / BASE_VIEWPORT_WIDTH
+	var scale_y = window_size.y / BASE_VIEWPORT_HEIGHT
+	var scale_factor = min(scale_x, scale_y)  # Use smaller to maintain aspect ratio
+
+	# Clamp scale factor to reasonable range (0.5x to 3x)
+	scale_factor = clamp(scale_factor, 0.5, 3.0)
+
+	# Calculate new SubViewport size
+	var new_width = int(BASE_SUBVIEWPORT_WIDTH * scale_factor)
+	var new_height = int(BASE_SUBVIEWPORT_HEIGHT * scale_factor)
+
+	# Only update if size actually changed
+	if terminal_subviewport.size.x != new_width or terminal_subviewport.size.y != new_height:
+		terminal_subviewport.size = Vector2i(new_width, new_height)
+
+		# Scale font size proportionally
+		var new_font_size = int(BASE_FONT_SIZE * scale_factor)
+		new_font_size = clamp(new_font_size, 10, 42)  # Keep font readable
+		terminal_output.add_theme_font_size_override("normal_font_size", new_font_size)
+
+		print("[Main] SubViewport resized to %dx%d, font size: %d (scale: %.2f)" % [new_width, new_height, new_font_size, scale_factor])
 
 
 func _on_power_button_input(event: InputEvent) -> void:
@@ -179,6 +240,12 @@ func _update_power_state() -> void:
 			# Turn off monitor light (CRT glow)
 			if monitor_light:
 				monitor_light.enabled = false
+			# Turn off monitor desk light
+			if monitor_desk_light:
+				monitor_desk_light.enabled = false
+			# Turn off screen backlight
+			if screen_backlight:
+				screen_backlight.enabled = false
 		ComputerState.BOOTING, ComputerState.ON:
 			# Hide screen off overlay
 			if screen_off_overlay:
@@ -199,6 +266,14 @@ func _update_power_state() -> void:
 			if monitor_light:
 				monitor_light.energy = 0.3  # Start dim, will adjust based on content
 				monitor_light.enabled = true
+			# Turn on monitor desk light (illuminates keyboard and desk area)
+			if monitor_desk_light:
+				monitor_desk_light.energy = 1.0  # Consistent base illumination
+				monitor_desk_light.enabled = true
+			# Turn on screen backlight (subtle glow behind the screen)
+			if screen_backlight:
+				screen_backlight.energy = 0.6  # Soft backlight effect
+				screen_backlight.enabled = true
 
 
 # Registration state (for boot sequence input handling)
