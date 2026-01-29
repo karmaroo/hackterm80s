@@ -1,0 +1,312 @@
+{
+  "version": "1.0.0",
+  "categories": {
+    "core": {
+      "name": "Core Systems",
+      "description": "Required system components",
+      "icon": "core"
+    },
+    "peripheral": {
+      "name": "Peripherals",
+      "description": "Interactive devices and equipment",
+      "icon": "peripheral"
+    },
+    "ambient": {
+      "name": "Ambient",
+      "description": "Atmospheric elements",
+      "icon": "ambient"
+    },
+    "furniture": {
+      "name": "Furniture",
+      "description": "Desks, shelves, and surfaces",
+      "icon": "furniture"
+    },
+    "decoration": {
+      "name": "Decorations",
+      "description": "Posters, notes, and accessories",
+      "icon": "decoration"
+    },
+    "books": {
+      "name": "Books & Media",
+      "description": "Books, manuals, and tapes",
+      "icon": "books"
+    },
+    "tech_props": {
+      "name": "Tech Props",
+      "description": "Vintage computer equipment",
+      "icon": "tech"
+    },
+    "ai_generated": {
+      "name": "AI Generated",
+      "description": "Custom AI-created assets",
+      "icon": "ai"
+    }
+  },
+  "assets": {
+    "terminal": {
+      "id": "terminal",
+      "name": "CRT Terminal",
+      "category": "core",
+      "type": "composite",
+      "description": "Main computer terminal with CRT shader and text I/O",
+      "script": "res://scripts/terminal.gd",
+      "singleton": true,
+      "required": true,
+      "default_size": [600, 410],
+      "default_position": [0, 0],
+      "dependencies": [],
+      "provides": ["text_output", "command_input", "boot_sequence"],
+      "config_schema": {
+        "crt_intensity": { "type": "float", "default": 0.8, "min": 0, "max": 1 },
+        "scanline_frequency": { "type": "float", "default": 400, "min": 100, "max": 800 },
+        "phosphor_color": { "type": "color", "default": [0.1, 1.0, 0.15] }
+      }
+    },
+    "monitor_frame": {
+      "id": "monitor_frame",
+      "name": "Monitor Frame",
+      "category": "core",
+      "type": "texture",
+      "description": "CRT monitor frame overlay",
+      "texture_path": "res://assets/monitor-without-screen-99999.png",
+      "singleton": true,
+      "required": true,
+      "default_size": [840, 650],
+      "layer": "foreground"
+    },
+    "computer_base": {
+      "id": "computer_base",
+      "name": "Computer & Keyboard",
+      "category": "core",
+      "type": "texture",
+      "description": "Computer base unit with keyboard",
+      "texture_path": "res://assets/computer-and-keyboard-998989.png",
+      "singleton": true,
+      "required": true,
+      "default_size": [1120, 620],
+      "layer": "midground"
+    },
+    "desk_phone": {
+      "id": "desk_phone",
+      "name": "Desk Phone",
+      "category": "peripheral",
+      "type": "composite",
+      "description": "Rotary desk phone for dialing BBSes",
+      "texture_path": "res://assets/desk-phone-3981721.png",
+      "script": "res://scripts/phone_bulb_light.gd",
+      "singleton": true,
+      "default_size": [320, 280],
+      "dependencies": ["modem"],
+      "provides": ["dtmf_output", "ring_indicator"],
+      "config_schema": {
+        "ring_enabled": { "type": "bool", "default": true },
+        "bulb_color": { "type": "color", "default": [1.0, 0.3, 0.1] }
+      }
+    },
+    "hayes_modem": {
+      "id": "hayes_modem",
+      "name": "Hayes Modem",
+      "category": "peripheral",
+      "type": "composite",
+      "description": "External modem with LED indicators",
+      "script": "res://scripts/hayes_modem.gd",
+      "singleton": true,
+      "default_size": [300, 80],
+      "provides": ["modem_connection", "at_commands"],
+      "config_schema": {
+        "baud_rate": { "type": "int", "default": 2400, "options": [300, 1200, 2400, 9600] }
+      }
+    },
+    "led_clock": {
+      "id": "led_clock",
+      "name": "LED Clock",
+      "category": "ambient",
+      "type": "composite",
+      "description": "Digital LED clock display",
+      "script": "res://scripts/led_clock.gd",
+      "singleton": true,
+      "default_size": [120, 41],
+      "config_schema": {
+        "display_color": { "type": "color", "default": [1.0, 0.15, 0.1] },
+        "use_24h": { "type": "bool", "default": false }
+      }
+    },
+    "lava_lamp": {
+      "id": "lava_lamp",
+      "name": "Lava Lamp",
+      "category": "ambient",
+      "type": "composite",
+      "description": "Animated lava lamp with glow effect",
+      "script": "res://scripts/lava_lamp.gd",
+      "singleton": false,
+      "default_size": [145, 360],
+      "config_schema": {
+        "liquid_color": { "type": "color", "default": [0.02, 0.04, 0.03] },
+        "blob_color": { "type": "color", "default": [0.2, 0.9, 0.4] },
+        "blob_speed": { "type": "float", "default": 0.15, "min": 0.05, "max": 0.5 }
+      }
+    },
+    "wood_shelf": {
+      "id": "wood_shelf",
+      "name": "Wood Shelf",
+      "category": "furniture",
+      "type": "procedural",
+      "description": "Wooden wall shelf",
+      "singleton": false,
+      "default_size": [350, 18],
+      "config_schema": {
+        "wood_color": { "type": "color", "default": [0.35, 0.22, 0.12] },
+        "highlight_color": { "type": "color", "default": [0.48, 0.32, 0.2] }
+      }
+    },
+    "desk": {
+      "id": "desk",
+      "name": "Desk Surface",
+      "category": "furniture",
+      "type": "procedural",
+      "description": "Wooden desk surface with grain texture",
+      "singleton": true,
+      "required": true,
+      "default_size": [1600, 250],
+      "layer": "background",
+      "config_schema": {
+        "wood_color": { "type": "color", "default": [0.28, 0.18, 0.1] }
+      }
+    },
+    "wargames_poster": {
+      "id": "wargames_poster",
+      "name": "WarGames Poster",
+      "category": "decoration",
+      "type": "texture",
+      "description": "Classic WarGames movie poster",
+      "texture_path": "res://assets/wargames-poster.jpg",
+      "singleton": false,
+      "default_size": [120, 180],
+      "tags": ["poster", "movie", "80s"]
+    },
+    "taped_note_1": {
+      "id": "taped_note_1",
+      "name": "Taped Note (Yellow)",
+      "category": "decoration",
+      "type": "texture",
+      "description": "Sticky note taped to surface",
+      "texture_path": "res://assets/taped-note-67621.png",
+      "singleton": false,
+      "default_size": [100, 100],
+      "tags": ["note", "sticky", "paper"]
+    },
+    "taped_note_2": {
+      "id": "taped_note_2",
+      "name": "Taped Note (White)",
+      "category": "decoration",
+      "type": "texture",
+      "description": "White note taped to surface",
+      "texture_path": "res://assets/taped-note-439872.png",
+      "singleton": false,
+      "default_size": [100, 100],
+      "tags": ["note", "sticky", "paper"]
+    },
+    "hack_books_1": {
+      "id": "hack_books_1",
+      "name": "Hacking Books Stack",
+      "category": "books",
+      "type": "texture",
+      "description": "Stack of computer security books",
+      "texture_path": "res://assets/hack-books-787772.png",
+      "singleton": false,
+      "default_size": [150, 100],
+      "tags": ["books", "hacking", "shelf"]
+    },
+    "hack_books_2": {
+      "id": "hack_books_2",
+      "name": "Technical Books",
+      "category": "books",
+      "type": "texture",
+      "description": "Programming and technical manuals",
+      "texture_path": "res://assets/hack-books-782209.png",
+      "singleton": false,
+      "default_size": [150, 100],
+      "tags": ["books", "programming", "shelf"]
+    },
+    "tech_books": {
+      "id": "tech_books",
+      "name": "Tech Reference Books",
+      "category": "books",
+      "type": "texture",
+      "description": "Technical reference books",
+      "texture_path": "res://assets/tech-books-443311.png",
+      "singleton": false,
+      "default_size": [150, 100],
+      "tags": ["books", "technical", "shelf"]
+    },
+    "floppy_stack": {
+      "id": "floppy_stack",
+      "name": "Floppy Disk Stack",
+      "category": "tech_props",
+      "type": "texture",
+      "description": "Stack of 5.25\" floppy disks",
+      "texture_path": "res://assets/floppy-disks-stack.png",
+      "singleton": false,
+      "default_size": [120, 80],
+      "tags": ["floppy", "disks", "storage"]
+    },
+    "floppy_caddy": {
+      "id": "floppy_caddy",
+      "name": "Floppy Disk Caddy",
+      "category": "tech_props",
+      "type": "texture",
+      "description": "Floppy disk storage caddy",
+      "texture_path": "res://assets/floppy-disk-caddy.png",
+      "singleton": false,
+      "default_size": [100, 120],
+      "tags": ["floppy", "storage", "organizer"]
+    },
+    "single_floppy": {
+      "id": "single_floppy",
+      "name": "Single Floppy Disk",
+      "category": "tech_props",
+      "type": "texture",
+      "description": "Close-up of a single floppy disk",
+      "texture_path": "res://assets/single-floppy-upclose.png",
+      "singleton": false,
+      "default_size": [80, 80],
+      "tags": ["floppy", "disk", "storage"]
+    },
+    "monitor_reference": {
+      "id": "monitor_reference",
+      "name": "CRT Monitor Reference",
+      "category": "tech_props",
+      "type": "texture",
+      "description": "Vintage CRT monitor",
+      "texture_path": "res://assets/monitor-676721.png",
+      "singleton": false,
+      "default_size": [200, 180],
+      "tags": ["monitor", "crt", "vintage"]
+    }
+  },
+  "ai_generation": {
+    "style_presets": {
+      "retro_80s": {
+        "name": "1980s Retro",
+        "prompt_suffix": "1980s retro computing aesthetic, muted CRT colors, subtle scanlines, nostalgic tech vibes, isolated object on dark background, game asset ready"
+      },
+      "pixel_art": {
+        "name": "Pixel Art",
+        "prompt_suffix": "pixel art style, limited color palette, clean edges, retro game aesthetic, 16-bit era, isolated sprite on transparent background"
+      },
+      "photorealistic": {
+        "name": "Photorealistic",
+        "prompt_suffix": "photorealistic rendering, studio lighting, high detail, isolated product shot on neutral background"
+      }
+    },
+    "object_types": {
+      "book": "vintage computer book or manual",
+      "desk_accessory": "1980s office desk accessory",
+      "tech_prop": "vintage computing equipment or peripheral",
+      "poster": "1980s movie or tech poster",
+      "plant": "small office plant or succulent",
+      "beverage": "coffee mug or soda can",
+      "stationery": "office supplies like pens, paper clips, or notepads"
+    }
+  }
+}

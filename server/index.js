@@ -13,6 +13,7 @@ const { initDatabase } = require('./db/init');
 const playersRouter = require('./routes/players');
 const filesystemRouter = require('./routes/filesystem');
 const sceneRouter = require('./routes/scene');
+const aiRouter = require('./routes/ai');
 const { initWebSocket, getTotalConnections } = require('./websocket');
 const { initEmailTransporter } = require('./utils/email');
 
@@ -83,6 +84,7 @@ app.use((req, res, next) => {
 app.use('/api', playersRouter);
 app.use('/api', filesystemRouter);
 app.use('/api', sceneRouter);
+app.use('/api/assets', aiRouter);
 
 // Health check / status endpoint
 app.get('/api/status', (req, res) => {
@@ -139,6 +141,11 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('    GET  /api/sync        - Incremental sync');
   console.log('    GET  /api/stats       - Server stats');
   console.log('    GET  /api/status      - Health check');
+  console.log('');
+  console.log('  AI Generation:');
+  console.log('    POST /api/assets/generate        - Generate AI asset');
+  console.log('    GET  /api/assets/generate/status - Check AI status');
+  console.log('    GET  /api/assets/generate/presets - Get style presets');
   console.log('');
   console.log('  WebSocket: ws://localhost:' + PORT + '/ws');
   console.log('========================================');

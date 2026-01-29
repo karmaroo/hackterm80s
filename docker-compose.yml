@@ -91,10 +91,13 @@ services:
       - "3000:3000"
     volumes:
       - ./server/db:/app/db
+    env_file:
+      - .env
     environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - DB_PATH=/app/db/hackterm.db
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${PORT:-3000}
+      - DB_PATH=${DB_PATH:-/app/db/hackterm.db}
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
     networks:
       - hackterm-network
     restart: unless-stopped
