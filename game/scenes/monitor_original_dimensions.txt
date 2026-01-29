@@ -1,0 +1,10 @@
+# Original Monitor/Terminal Screen Dimensions
+# (for procedurally rendered monitor)
+# Use these values to revert if needed
+
+[node name="Monitor" type="Control" parent="ComputerFrame"]
+offset_left = -370.0
+offset_top = -390.0
+offset_right = 370.0
+offset_bottom = 140.0
+# Size: 740w x 530h

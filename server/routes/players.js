@@ -7,13 +7,14 @@ const crypto = require('crypto');
 const router = express.Router();
 const { generateRecoveryCode } = require('../utils/recovery_code');
 const { allocatePhoneNumber, getPoolStats } = require('../utils/phone_pool');
+const { sendRecoveryCodeEmail, isValidEmail } = require('../utils/email');
 
 /**
  * POST /api/register
  * Register a new player with a handle
  */
 router.post('/register', (req, res) => {
-  const { handle, browser_id } = req.body;
+  const { handle, email, browser_id } = req.body;
   const db = req.db;
 
   // Validate handle
@@ -41,6 +42,27 @@ router.post('/register', (req, res) => {
       success: false,
       error: 'INVALID_HANDLE',
       message: 'Handle can only contain letters, numbers, underscore, and hyphen'
+    });
+  }
+
+  // Validate email
+  if (!email || !isValidEmail(email)) {
+    return res.status(400).json({
+      success: false,
+      error: 'INVALID_EMAIL',
+      message: 'Valid email address is required'
+    });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+
+  // Check if email already registered
+  const existingEmail = db.prepare('SELECT id FROM players WHERE email = ?').get(cleanEmail);
+  if (existingEmail) {
+    return res.status(409).json({
+      success: false,
+      error: 'EMAIL_TAKEN',
+      message: 'Email already registered. Use SESSION RECOVER to restore your account.'
     });
   }
 
@@ -86,9 +108,9 @@ router.post('/register', (req, res) => {
   const createPlayer = db.transaction(() => {
     // Create player (phone number will be null initially)
     const result = db.prepare(`
-      INSERT INTO players (handle, phone_number, recovery_code)
-      VALUES (?, '', ?)
-    `).run(cleanHandle, recoveryCode);
+      INSERT INTO players (handle, phone_number, recovery_code, email)
+      VALUES (?, '', ?, ?)
+    `).run(cleanHandle, recoveryCode, cleanEmail);
 
     const playerId = result.lastInsertRowid;
 
@@ -120,14 +142,19 @@ router.post('/register', (req, res) => {
   try {
     const { phoneNumber, sessionToken } = createPlayer();
 
-    console.log(`[REGISTER] New player: ${cleanHandle} (${phoneNumber})`);
+    console.log(`[REGISTER] New player: ${cleanHandle} (${phoneNumber}) - ${cleanEmail}`);
+
+    // Send recovery code email (async, don't wait)
+    sendRecoveryCodeEmail(cleanEmail, cleanHandle, recoveryCode, phoneNumber)
+      .catch(err => console.error('[REGISTER] Email send error:', err.message));
 
     res.json({
       success: true,
       handle: cleanHandle,
       phone_number: phoneNumber,
       recovery_code: recoveryCode,
-      session_token: sessionToken
+      session_token: sessionToken,
+      email: cleanEmail
     });
   } catch (error) {
     console.error('[REGISTER] Error:', error.message);
@@ -195,25 +222,46 @@ router.post('/recover', (req, res) => {
 
 /**
  * GET /api/player/:handle
- * Lookup player by handle
+ * Lookup player by handle (for availability check)
+ * Note: Does not return phone_number for privacy - use /api/phone/:number for reverse lookup
  */
 router.get('/player/:handle', (req, res) => {
   const handle = req.params.handle.toUpperCase();
   const db = req.db;
 
   const player = db.prepare(`
-    SELECT handle, phone_number, created_at FROM players WHERE handle = ?
+    SELECT handle, created_at FROM players WHERE handle = ?
   `).get(handle);
 
   if (!player) {
-    return res.status(404).json({ error: 'NOT_FOUND' });
+    return res.status(404).json({ error: 'NOT_FOUND', available: true });
   }
 
+  // Only return handle existence, not phone number (privacy)
   res.json({
     handle: player.handle,
-    phone_number: player.phone_number,
-    registered: player.created_at
+    exists: true
   });
+});
+
+/**
+ * GET /api/email/:email
+ * Check if email is already registered (for availability check)
+ */
+router.get('/email/:email', (req, res) => {
+  const email = req.params.email.toLowerCase().trim();
+  const db = req.db;
+
+  const player = db.prepare(`
+    SELECT id FROM players WHERE email = ?
+  `).get(email);
+
+  if (!player) {
+    return res.status(404).json({ error: 'NOT_FOUND', available: true });
+  }
+
+  // Email exists - don't reveal any other info
+  res.json({ exists: true });
 });
 
 /**

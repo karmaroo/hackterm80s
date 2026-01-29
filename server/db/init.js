@@ -38,11 +38,18 @@ function initDatabase(db) {
     )
   `);
 
+  // Migrate players: add email column if missing
+  if (!columnExists(db, 'players', 'email')) {
+    console.log('  Adding email column to players');
+    db.exec(`ALTER TABLE players ADD COLUMN email TEXT`);
+  }
+
   // Create indexes
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_players_handle ON players(handle);
     CREATE INDEX IF NOT EXISTS idx_players_phone ON players(phone_number);
     CREATE INDEX IF NOT EXISTS idx_players_recovery ON players(recovery_code);
+    CREATE INDEX IF NOT EXISTS idx_players_email ON players(email);
   `);
 
   // Phone number pool
@@ -142,6 +149,38 @@ function initDatabase(db) {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_active_sessions_player ON active_sessions(player_id);
   `);
+
+  // Scene configurations (for edit mode)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS scene_configs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      player_id INTEGER REFERENCES players(id),
+      config_name TEXT NOT NULL DEFAULT 'default',
+      config_data TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(player_id, config_name)
+    )
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_scene_configs_player ON scene_configs(player_id);
+    CREATE INDEX IF NOT EXISTS idx_scene_configs_name ON scene_configs(config_name);
+  `);
+
+  // Global/default scene config (player_id = NULL means system default)
+  // This stores the "master" layout all new players get
+  const defaultExists = db.prepare(
+    "SELECT id FROM scene_configs WHERE player_id IS NULL AND config_name = 'master'"
+  ).get();
+
+  if (!defaultExists) {
+    console.log('  Creating default scene config placeholder');
+    db.prepare(`
+      INSERT INTO scene_configs (player_id, config_name, config_data)
+      VALUES (NULL, 'master', '{"version":1,"elements":{}}')
+    `).run();
+  }
 
   console.log('Database schema initialized');
 

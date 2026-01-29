@@ -13,14 +13,17 @@ var computer_state: ComputerState = ComputerState.OFF  # Player must turn it on
 # Dynamic SubViewport scaling for crisp text at any resolution
 const BASE_VIEWPORT_WIDTH: float = 1600.0
 const BASE_VIEWPORT_HEIGHT: float = 800.0
-const BASE_SUBVIEWPORT_WIDTH: int = 3300
-const BASE_SUBVIEWPORT_HEIGHT: int = 2100
+const BASE_SUBVIEWPORT_WIDTH: int = 3000
+const BASE_SUBVIEWPORT_HEIGHT: int = 2050
 const BASE_FONT_SIZE: int = 70
 var _resize_timer: float = 0.0
 var _pending_resize: bool = false
 @onready var screen_off_overlay: ColorRect = $ComputerFrame/Monitor/ScreenOffOverlay
 @onready var power_button: Panel = $ComputerFrame/Monitor/ControlPanel/PowerButton
 @onready var power_led: ColorRect = $ComputerFrame/Monitor/ControlPanel/PowerLED
+@onready var base_power_button: Panel = $ComputerFrame/BasePowerButton
+@onready var new_power_led: ColorRect = $ComputerFrame/BasePowerLED
+@onready var new_hdd_led: ColorRect = $ComputerFrame/BaseHDDLED
 @onready var keyboard: Control = $ComputerFrame/Keyboard
 @onready var monitor_light: PointLight2D = $ComputerFrame/Monitor/MonitorLight
 @onready var monitor_desk_light: PointLight2D = $ComputerFrame/Monitor/MonitorDeskLight
@@ -104,12 +107,19 @@ func _ready() -> void:
 	# Setup audio
 	_setup_audio()
 
-	# Connect power button
+	# Connect power button (monitor control panel - may be hidden)
 	if power_button:
 		power_button.gui_input.connect(_on_power_button_input)
 		print("[Main] Power button connected")
 	else:
 		print("[Main] WARNING: Power button not found!")
+
+	# Connect base power button (on computer base image)
+	if base_power_button:
+		base_power_button.gui_input.connect(_on_power_button_input)
+		print("[Main] Base power button connected")
+	else:
+		print("[Main] WARNING: Base power button not found!")
 
 	# Lava lamp handles its own power button via lava_lamp.gd script
 
@@ -148,6 +158,17 @@ func _ready() -> void:
 	else:
 		print("[Main] WARNING: ZoomManager not found")
 
+	# Apply initial CRT curvature if enabled
+	if crt_curvature_enabled and terminal_view and terminal_view.material:
+		terminal_view.material.set_shader_parameter("curvature", CRT_CURVATURE_VALUE)
+		print("[Main] CRT curvature enabled by default: %f" % CRT_CURVATURE_VALUE)
+
+	# Create EditModeManager for runtime UI element positioning
+	var edit_mode_manager = preload("res://scripts/edit_mode_manager.gd").new()
+	edit_mode_manager.name = "EditModeManager"
+	add_child(edit_mode_manager)
+	print("[Main] EditModeManager created")
+
 
 func _process(delta: float) -> void:
 	# Handle debounced SubViewport resize
@@ -161,7 +182,7 @@ func _process(delta: float) -> void:
 		if terminal.has_method("get_screen_brightness"):
 			var brightness = terminal.get_screen_brightness()
 			# Range 0.3 (nearly empty) to 3.0 (full screen of text)
-			monitor_light.energy = 0.3 + (brightness * 2.7)
+			monitor_light.energy = 0.15 + (brightness * 1.2)
 
 
 func _on_window_size_changed() -> void:
@@ -245,6 +266,10 @@ func _update_power_state() -> void:
 				power_led.color = LED_OFF
 			if base_power_led:
 				base_power_led.color = LED_OFF
+			if new_power_led:
+				new_power_led.color = LED_OFF
+			if new_hdd_led:
+				new_hdd_led.color = LED_OFF
 			# Turn off modem LEDs when computer is off
 			_reset_modem_leds()
 			# Turn off monitor light (CRT glow)
@@ -269,26 +294,29 @@ func _update_power_state() -> void:
 				power_led.color = LED_GREEN
 			if base_power_led:
 				base_power_led.color = LED_GREEN
+			if new_power_led:
+				new_power_led.color = LED_GREEN
 			# Turn on modem ready LEDs (MR and TR) when computer is on
 			if computer_state == ComputerState.ON:
 				_set_modem_ready_leds()
 			# Turn on monitor light (green CRT glow) when screen is on
 			if monitor_light:
-				monitor_light.energy = 0.3  # Start dim, will adjust based on content
+				monitor_light.energy = 0.15  # Start dim, will adjust based on content
 				monitor_light.enabled = true
 			# Turn on monitor desk light (illuminates keyboard and desk area)
 			if monitor_desk_light:
-				monitor_desk_light.energy = 1.0  # Consistent base illumination
+				monitor_desk_light.energy = 0.5  # Reduced illumination
 				monitor_desk_light.enabled = true
 			# Turn on screen backlight (subtle glow behind the screen)
 			if screen_backlight:
-				screen_backlight.energy = 0.6  # Soft backlight effect
+				screen_backlight.energy = 0.3  # Soft backlight effect
 				screen_backlight.enabled = true
 
 
 # Registration state (for boot sequence input handling)
 var _awaiting_registration: bool = false
 var _registration_input: String = ""
+var _registration_max_length: int = 12
 var _registration_complete_signal: Signal
 
 # Boot sequence abort flag
@@ -318,6 +346,8 @@ func _start_boot_sequence() -> void:
 	# Flash HDD LED during boot
 	if hdd_led:
 		hdd_led.color = LED_RED
+	if new_hdd_led:
+		new_hdd_led.color = LED_RED
 
 	# BIOS header with slower typing
 	await _boot_print_slow("SHADOW SYSTEMS BIOS v2.1")
@@ -438,6 +468,8 @@ func _start_boot_sequence() -> void:
 
 	if hdd_led:
 		hdd_led.color = LED_OFF
+	if new_hdd_led:
+		new_hdd_led.color = LED_OFF
 
 	computer_state = ComputerState.ON
 	_update_power_state()
@@ -474,7 +506,7 @@ func _boot_print_no_newline(text: String) -> void:
 
 
 func _registration_sequence() -> void:
-	"""Display registration screen during boot and get player handle"""
+	"""Display registration screen during boot and get player handle + email"""
 	if not terminal:
 		return
 
@@ -483,6 +515,28 @@ func _registration_sequence() -> void:
 	await _boot_print("   *** SHADOW NETWORK REGISTRATION ***")
 	await _boot_print("========================================")
 	await _boot_print("")
+
+	# Check network connectivity first
+	if not OnlineManager.is_online:
+		await _boot_print("ERROR: Network connection required.")
+		await _boot_print("")
+		await _boot_print("The Shadow Network requires an active")
+		await _boot_print("network connection to register.")
+		await _boot_print("")
+		await _boot_print("Check your connection and restart.")
+		await _boot_print("")
+		await _boot_print("Press any key to retry...")
+
+		await _wait_for_any_key()
+
+		# Retry registration
+		if terminal:
+			terminal.clear_screen()
+			terminal._output_text = ""
+			terminal._display_base = ""
+		await _registration_sequence()
+		return
+
 	await _boot_print("Your modem is not registered with the")
 	await _boot_print("Shadow Network. Registration is required")
 	await _boot_print("to access network services.")
@@ -490,23 +544,95 @@ func _registration_sequence() -> void:
 	await _boot_print("Enter your handle (3-12 characters):")
 	await _boot_print("")
 
-	# Get handle input during boot
-	_awaiting_registration = true
-	_registration_input = ""
-	_update_registration_display()
+	# Get handle input
+	var handle = await _get_registration_input(12)
 
-	# Wait for registration to complete
-	while _awaiting_registration:
-		await get_tree().create_timer(0.1).timeout
-
-	var handle = _registration_input.strip_edges()
-
-	# Validate handle
+	# Validate handle length
 	if handle.length() < 3 or handle.length() > 12:
 		await _boot_print("")
-		await _boot_print("Invalid handle. Using offline mode.")
-		await get_tree().create_timer(1.0).timeout
-		OnlineManager.setup_offline_mode("GUEST")
+		await _boot_print("ERROR: Handle must be 3-12 characters.")
+		await _boot_print("")
+		await _boot_print("Press any key to try again...")
+		await _wait_for_any_key()
+
+		if terminal:
+			terminal.clear_screen()
+			terminal._output_text = ""
+			terminal._display_base = ""
+		await _registration_sequence()
+		return
+
+	# Check if handle is available BEFORE asking for email
+	await _boot_print("")
+	await _boot_print("Checking handle availability...")
+
+	OnlineManager.check_handle_available(handle)
+
+	var check_received = false
+	var check_available = false
+	var check_data = {}
+
+	OnlineManager.handle_check_complete.connect(
+		func(available: bool, data: Dictionary):
+			check_received = true
+			check_available = available
+			check_data = data,
+		CONNECT_ONE_SHOT
+	)
+
+	var check_start = Time.get_ticks_msec()
+	while not check_received and (Time.get_ticks_msec() - check_start) < 5000:
+		await get_tree().create_timer(0.1).timeout
+
+	if not check_received:
+		await _boot_print("ERROR: Network timeout checking handle.")
+		await _boot_print("")
+		await _boot_print("Press any key to try again...")
+		await _wait_for_any_key()
+
+		if terminal:
+			terminal.clear_screen()
+			terminal._output_text = ""
+			terminal._display_base = ""
+		await _registration_sequence()
+		return
+
+	if not check_available:
+		await _boot_print("ERROR: Handle '" + handle + "' is already taken!")
+		await _boot_print("")
+		await _boot_print("Press any key to try a different handle...")
+		await _wait_for_any_key()
+
+		if terminal:
+			terminal.clear_screen()
+			terminal._output_text = ""
+			terminal._display_base = ""
+		await _registration_sequence()
+		return
+
+	await _boot_print("Handle available!")
+	await _boot_print("")
+
+	# Get email input
+	await _boot_print("Enter your email address:")
+	await _boot_print("(Recovery code will be sent here)")
+	await _boot_print("")
+
+	var email = await _get_registration_input(64)
+
+	# Basic email validation
+	if not "@" in email or not "." in email or email.length() < 5:
+		await _boot_print("")
+		await _boot_print("ERROR: Invalid email address.")
+		await _boot_print("")
+		await _boot_print("Press any key to try again...")
+		await _wait_for_any_key()
+
+		if terminal:
+			terminal.clear_screen()
+			terminal._output_text = ""
+			terminal._display_base = ""
+		await _registration_sequence()
 		return
 
 	# Try to register with server
@@ -514,10 +640,10 @@ func _registration_sequence() -> void:
 	await _boot_print("Connecting to Shadow Network...")
 	await get_tree().create_timer(0.5).timeout
 
-	OnlineManager.register_player(handle)
+	OnlineManager.register_player(handle, email)
 
 	# Wait for response with timeout
-	var timeout = 5.0
+	var timeout = 10.0
 	var start_time = Time.get_ticks_msec()
 	var result_received = false
 	var result_success = false
@@ -544,36 +670,54 @@ func _registration_sequence() -> void:
 		await _boot_print("")
 		await _boot_print(" Code: " + OnlineManager.recovery_code)
 		await _boot_print("")
+		await _boot_print(" Recovery code sent to: " + email)
+		await _boot_print("")
 		await _boot_print(" Use SESSION RECOVER <code> to restore")
 		await _boot_print(" your identity on another computer.")
 		await _boot_print("========================================")
 		await _boot_print("")
 		await _boot_print("Press any key to continue...")
-
-		# Wait for keypress
-		_awaiting_registration = true
-		_registration_input = ""
-		while _awaiting_registration and _registration_input.is_empty():
-			await get_tree().create_timer(0.1).timeout
-		_awaiting_registration = false
+		await _wait_for_any_key()
 
 	elif result_received and not result_success:
 		# Server responded with error
 		var error = result_data.get("error", "UNKNOWN")
+		await _boot_print("")
 		if error == "HANDLE_TAKEN":
 			await _boot_print("ERROR: Handle already taken!")
+		elif error == "EMAIL_TAKEN":
+			await _boot_print("ERROR: Email already registered!")
+			await _boot_print("Use SESSION RECOVER to restore.")
+		elif error == "INVALID_EMAIL":
+			await _boot_print("ERROR: Invalid email address.")
 		else:
 			await _boot_print("ERROR: " + result_data.get("message", "Registration failed"))
 		await _boot_print("")
-		await _boot_print("Using offline mode.")
-		await get_tree().create_timer(1.5).timeout
-		OnlineManager.setup_offline_mode(handle)
+		await _boot_print("Press any key to try again...")
+		await _wait_for_any_key()
+
+		if terminal:
+			terminal.clear_screen()
+			terminal._output_text = ""
+			terminal._display_base = ""
+		await _registration_sequence()
+		return
+
 	else:
 		# Timeout - server unreachable
-		await _boot_print("Network unreachable.")
-		await _boot_print("Using offline mode.")
-		await get_tree().create_timer(1.0).timeout
-		OnlineManager.setup_offline_mode(handle)
+		await _boot_print("")
+		await _boot_print("ERROR: Network timeout.")
+		await _boot_print("Could not reach Shadow Network.")
+		await _boot_print("")
+		await _boot_print("Press any key to retry...")
+		await _wait_for_any_key()
+
+		if terminal:
+			terminal.clear_screen()
+			terminal._output_text = ""
+			terminal._display_base = ""
+		await _registration_sequence()
+		return
 
 	# Clear screen before continuing boot
 	if terminal:
@@ -582,25 +726,64 @@ func _registration_sequence() -> void:
 		terminal._display_base = ""
 
 
+func _get_registration_input(max_length: int = 12) -> String:
+	"""Get user input during registration with proper display handling"""
+	if not terminal:
+		return ""
+
+	# Prevent terminal's _refresh_display from interfering
+	terminal.is_typing = true
+
+	_awaiting_registration = true
+	_registration_input = ""
+	_registration_max_length = max_length
+
+	# Set up terminal's display base to include prompt
+	terminal._display_base = terminal._output_text + "> "
+	terminal.current_input = ""
+
+	# Initial display
+	_update_registration_display()
+
+	# Wait for input with periodic display updates for cursor blink
+	while _awaiting_registration:
+		_update_registration_display()
+		await get_tree().create_timer(0.1).timeout
+
+	# Restore terminal state
+	terminal.is_typing = false
+
+	# Add the final input to the output so it persists
+	terminal._output_text = terminal._display_base + _registration_input + "\n"
+	terminal._display_base = terminal._output_text
+	terminal._update_display()
+
+	return _registration_input.strip_edges()
+
+
+func _wait_for_any_key() -> void:
+	"""Wait for any key press"""
+	_awaiting_registration = true
+	_registration_input = ""
+	while _awaiting_registration and _registration_input.is_empty():
+		await get_tree().create_timer(0.1).timeout
+	_awaiting_registration = false
+
+
 func _update_registration_display() -> void:
 	"""Update the display during registration input"""
 	if not terminal or not _awaiting_registration:
 		return
 
-	# Show current input with cursor
+	# Show current input with blinking cursor
 	var cursor = "_" if fmod(Time.get_ticks_msec() / 500.0, 2.0) < 1.0 else " "
-	var display_text = "> " + _registration_input + cursor
 
-	# We need to update the last line
-	var lines = terminal._output_text.split("\n")
-	if lines.size() > 0:
-		# Check if last line is our input line
-		if lines[lines.size() - 1].begins_with(">") or lines[lines.size() - 1] == "":
-			lines[lines.size() - 1] = display_text
-		else:
-			lines.append(display_text)
-		terminal._output_text = "\n".join(lines)
-		terminal._update_display()
+	# Update terminal's current_input so _refresh_display can show it
+	# But since we set is_typing=true, _refresh_display won't run
+	# So we manually update the output
+	if terminal.output:
+		terminal.output.clear()
+		terminal.output.add_text(terminal._display_base + _registration_input + cursor)
 
 
 func _handle_registration_key(event: InputEventKey) -> void:
@@ -620,7 +803,7 @@ func _handle_registration_key(event: InputEventKey) -> void:
 		_awaiting_registration = false
 	else:
 		# Add character if printable and within length limit
-		if event.unicode >= 32 and event.unicode < 127 and _registration_input.length() < 12:
+		if event.unicode >= 32 and event.unicode < 127 and _registration_input.length() < _registration_max_length:
 			_registration_input += char(event.unicode)
 			_update_registration_display()
 
@@ -730,8 +913,8 @@ func _input(event: InputEvent) -> void:
 					DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 				else:
 					DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-			# F12 to toggle power (for testing)
-			elif event.keycode == KEY_F12:
+			# F4 or F12 to toggle power
+			elif event.keycode == KEY_F4 or event.keycode == KEY_F12:
 				_toggle_power()
 			# F9 to toggle CRT curvature
 			elif event.keycode == KEY_F9:
@@ -902,6 +1085,9 @@ func flash_hdd_led() -> void:
 	if hdd_led:
 		hdd_led.color = LED_RED
 		get_tree().create_timer(0.1).timeout.connect(func(): if hdd_led: hdd_led.color = LED_OFF)
+	if new_hdd_led:
+		new_hdd_led.color = LED_RED
+		get_tree().create_timer(0.1).timeout.connect(func(): if new_hdd_led: new_hdd_led.color = LED_OFF)
 
 
 ## Toggle CRT screen curvature effect

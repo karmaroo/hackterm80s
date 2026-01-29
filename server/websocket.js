@@ -9,6 +9,10 @@ const crypto = require('crypto');
 // Store active connections by player_id
 const playerConnections = new Map(); // player_id -> Set of { ws, sessionToken }
 
+// Scene update debouncing: playerId -> { timeout, lastConfig, ws }
+const sceneUpdateDebounce = new Map();
+const SCENE_DEBOUNCE_MS = 500;
+
 /**
  * Initialize WebSocket server
  * @param {http.Server} server - HTTP server to attach to
@@ -142,6 +146,30 @@ function handleMessage(ws, message, context) {
         return;
       }
       handleRequestSync(ws, message, db, playerId);
+      break;
+
+    case 'scene_update':
+      if (!authenticated) {
+        sendError(ws, 'NOT_AUTHENTICATED', 'Must authenticate first');
+        return;
+      }
+      handleSceneUpdate(ws, message, db, playerId, sessionToken, playerHandle);
+      break;
+
+    case 'scene_save_default':
+      if (!authenticated) {
+        sendError(ws, 'NOT_AUTHENTICATED', 'Must authenticate first');
+        return;
+      }
+      handleSceneSaveDefault(ws, message, db, playerId, playerHandle);
+      break;
+
+    case 'scene_load':
+      if (!authenticated) {
+        sendError(ws, 'NOT_AUTHENTICATED', 'Must authenticate first');
+        return;
+      }
+      handleSceneLoad(ws, message, db, playerId);
       break;
 
     default:
@@ -474,6 +502,194 @@ function handleRequestSync(ws, message, db, playerId) {
     })),
     server_time: Date.now()
   }));
+}
+
+// ============================================================================
+// Scene Configuration Handlers
+// ============================================================================
+
+/**
+ * Handle scene update (auto-save with debouncing)
+ */
+function handleSceneUpdate(ws, message, db, playerId, sessionToken, playerHandle) {
+  const { config, config_name = 'default' } = message;
+
+  if (!config || typeof config !== 'object') {
+    sendError(ws, 'INVALID_CONFIG', 'Config data is required');
+    return;
+  }
+
+  // Clear any existing debounce timer for this player
+  const existing = sceneUpdateDebounce.get(playerId);
+  if (existing?.timeout) {
+    clearTimeout(existing.timeout);
+  }
+
+  // Set new debounce timer
+  const timeout = setTimeout(() => {
+    try {
+      let finalConfig = config;
+
+      // Handle delta updates - merge with existing config
+      if (config.is_delta) {
+        const existingRow = db.prepare(`
+          SELECT config_data FROM scene_configs
+          WHERE player_id = ? AND config_name = ?
+        `).get(playerId, config_name);
+
+        if (existingRow) {
+          const existingConfig = JSON.parse(existingRow.config_data);
+
+          // Get current copy paths to know which elements to keep
+          const copyPaths = new Set((config.copies || []).map(c => c.path));
+
+          // Filter out deleted copies from existing elements
+          const filteredElements = { ...existingConfig.elements };
+          for (const path of Object.keys(filteredElements)) {
+            // If this was a copy (has is_copy flag) and is no longer in copies list, remove it
+            const elemData = filteredElements[path];
+            if (elemData && elemData.is_copy && !copyPaths.has(path)) {
+              delete filteredElements[path];
+            }
+          }
+
+          // Merge: keep filtered elements, overwrite with delta elements
+          finalConfig = {
+            ...existingConfig,
+            version: config.version || existingConfig.version,
+            timestamp: config.timestamp,
+            hidden: config.hidden || existingConfig.hidden || [],
+            locked: config.locked || existingConfig.locked || [],
+            copies: config.copies || existingConfig.copies || [],
+            custom_names: config.custom_names || existingConfig.custom_names || {},
+            elements: {
+              ...filteredElements,
+              ...config.elements  // Delta elements overwrite existing
+            }
+          };
+          delete finalConfig.is_delta;
+        }
+      }
+
+      const configJson = JSON.stringify(finalConfig);
+      db.prepare(`
+        INSERT INTO scene_configs (player_id, config_name, config_data, updated_at)
+        VALUES (?, ?, ?, datetime('now'))
+        ON CONFLICT(player_id, config_name) DO UPDATE SET
+          config_data = excluded.config_data,
+          updated_at = datetime('now')
+      `).run(playerId, config_name, configJson);
+
+      console.log(`[WS] ${playerHandle}: scene_update saved (${config_name})`);
+
+      // Confirm to sender
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'scene_update_ok',
+          config_name,
+          timestamp: Date.now()
+        }));
+      }
+
+      // Broadcast to other sessions of same player
+      broadcastToPlayer(playerId, sessionToken, {
+        type: 'scene_changed',
+        config,
+        config_name,
+        by_session: sessionToken,
+        timestamp: Date.now()
+      });
+
+    } catch (error) {
+      console.error('[WS] scene_update error:', error.message);
+      if (ws.readyState === WebSocket.OPEN) {
+        sendError(ws, 'SCENE_UPDATE_FAILED', error.message);
+      }
+    }
+
+    sceneUpdateDebounce.delete(playerId);
+  }, SCENE_DEBOUNCE_MS);
+
+  sceneUpdateDebounce.set(playerId, { timeout, lastConfig: config, ws });
+}
+
+/**
+ * Handle scene save as default (admin only)
+ */
+function handleSceneSaveDefault(ws, message, db, playerId, playerHandle) {
+  const { admin_key, config } = message;
+  const expectedKey = process.env.ADMIN_KEY || 'hackterm-admin-2024';
+
+  if (admin_key !== expectedKey) {
+    sendError(ws, 'FORBIDDEN', 'Invalid admin key');
+    return;
+  }
+
+  if (!config || typeof config !== 'object') {
+    sendError(ws, 'INVALID_CONFIG', 'Config data is required');
+    return;
+  }
+
+  try {
+    const configJson = JSON.stringify(config);
+
+    // Save to master config (player_id = NULL)
+    db.prepare(`
+      INSERT INTO scene_configs (player_id, config_name, config_data, updated_at)
+      VALUES (NULL, 'master', ?, datetime('now'))
+      ON CONFLICT(player_id, config_name) DO UPDATE SET
+        config_data = excluded.config_data,
+        updated_at = datetime('now')
+    `).run(configJson);
+
+    console.log(`[WS] ${playerHandle}: saved master default config`);
+
+    ws.send(JSON.stringify({
+      type: 'scene_save_default_ok',
+      timestamp: Date.now()
+    }));
+  } catch (error) {
+    console.error('[WS] scene_save_default error:', error.message);
+    sendError(ws, 'SCENE_SAVE_DEFAULT_FAILED', error.message);
+  }
+}
+
+/**
+ * Handle scene load request
+ */
+function handleSceneLoad(ws, message, db, playerId) {
+  const { config_name = 'default' } = message;
+
+  try {
+    // Try player config first
+    let config = db.prepare(`
+      SELECT config_data, updated_at FROM scene_configs
+      WHERE player_id = ? AND config_name = ?
+    `).get(playerId, config_name);
+
+    let isDefault = false;
+
+    // Fallback to master if no player config
+    if (!config) {
+      config = db.prepare(`
+        SELECT config_data, updated_at FROM scene_configs
+        WHERE player_id IS NULL AND config_name = 'master'
+      `).get();
+      isDefault = true;
+    }
+
+    ws.send(JSON.stringify({
+      type: 'scene_load_response',
+      config: config ? JSON.parse(config.config_data) : null,
+      config_name,
+      is_default: isDefault,
+      updated_at: config?.updated_at,
+      timestamp: Date.now()
+    }));
+  } catch (error) {
+    console.error('[WS] scene_load error:', error.message);
+    sendError(ws, 'SCENE_LOAD_FAILED', error.message);
+  }
 }
 
 // ============================================================================

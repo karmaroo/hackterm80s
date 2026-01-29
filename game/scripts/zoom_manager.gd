@@ -113,16 +113,16 @@ var nodes_to_zoom: Array[String] = [
 # Zoom scale factors
 const ZOOM_SCALES = {
 	ZoomLevel.ROOM: Vector2(0.55, 0.55),    # Zoomed out - see full room
-	ZoomLevel.DESKTOP: Vector2(1.0, 1.0),   # Normal (current view)
-	ZoomLevel.MONITOR: Vector2(1.6, 1.6),   # Zoomed in - monitor focus
+	ZoomLevel.DESKTOP: Vector2(0.92, 0.92), # Normal - slightly zoomed out to show full monitor
+	ZoomLevel.MONITOR: Vector2(1.8, 1.8),   # Zoomed in - monitor focus
 	ZoomLevel.SCREEN: Vector2(2.0, 2.0),    # Maximum zoom - just the screen content
 }
 
 # Pivot points relative to viewport (where to center the zoom)
 const ZOOM_PIVOTS = {
 	ZoomLevel.ROOM: Vector2(0.5, 0.6),      # Center of room (lower to show ceiling area)
-	ZoomLevel.DESKTOP: Vector2(0.5, 0.5),   # Center of desk area
-	ZoomLevel.MONITOR: Vector2(0.5, 0.08),  # Center on monitor screen (shifted down to show full monitor)
+	ZoomLevel.DESKTOP: Vector2(0.5, 0.52),  # Center of desk area (shifted down slightly)
+	ZoomLevel.MONITOR: Vector2(0.5, -0.04),  # Center on monitor top
 	ZoomLevel.SCREEN: Vector2(0.5, 0.18),   # Center on screen content only (no monitor frame)
 }
 
@@ -722,6 +722,7 @@ func _create_window() -> void:
 	blinds_button.name = "BlindsButton"
 	blinds_button.set_anchors_preset(Control.PRESET_FULL_RECT)
 	blinds_button.flat = true
+	blinds_button.focus_mode = Control.FOCUS_NONE  # Prevent keyboard focus stealing Enter key
 	blinds_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	blinds_button.pressed.connect(_on_blinds_clicked)
 	blinds_container.add_child(blinds_button)
@@ -1208,16 +1209,13 @@ func _create_lighting_system() -> void:
 	zoom_container.add_child(light_container)
 
 	# Main window light - positioned at the window (right side of scene)
-	# Light comes from right, casts shadows to the left
+	# Light focused on desk area in front of window, not on computer
 	window_light = PointLight2D.new()
 	window_light.name = "WindowLight"
-	window_light.position = Vector2(900, -200)  # Right side, where window is
+	window_light.position = Vector2(1100, 50)  # Further right, focused on desk area
 	window_light.texture = texture
-	window_light.texture_scale = 12.0
-	window_light.shadow_enabled = true
-	window_light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF13  # Higher quality filter
-	window_light.shadow_filter_smooth = 8.0  # Much smoother shadows
-	window_light.shadow_color = Color(0.02, 0.02, 0.06, 0.35)  # Softer, more subtle shadows
+	window_light.texture_scale = 8.0  # Smaller coverage
+	window_light.shadow_enabled = false  # Disable shadows to avoid artifacts on computer
 	window_light.blend_mode = Light2D.BLEND_MODE_ADD
 	light_container.add_child(window_light)
 
@@ -1227,10 +1225,7 @@ func _create_lighting_system() -> void:
 	floor_light.position = Vector2(200, 100)  # Light landing on desk area
 	floor_light.texture = texture
 	floor_light.texture_scale = 8.0
-	floor_light.shadow_enabled = true
-	floor_light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF13
-	floor_light.shadow_filter_smooth = 6.0
-	floor_light.shadow_color = Color(0.02, 0.02, 0.06, 0.3)
+	floor_light.shadow_enabled = false  # Disable shadows to avoid artifacts on computer
 	floor_light.blend_mode = Light2D.BLEND_MODE_ADD
 	light_container.add_child(floor_light)
 

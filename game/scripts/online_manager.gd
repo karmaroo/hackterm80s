@@ -18,6 +18,7 @@ signal websocket_connected()
 signal websocket_disconnected()
 signal versions_received(path: String, current: Dictionary, versions: Array)
 signal version_restored(path: String, version: int)
+signal scene_config_received(msg: Dictionary)  # For edit mode auto-save
 
 # Server configuration
 const DEFAULT_SERVER_URL = "http://localhost:3000/api"
@@ -259,6 +260,10 @@ func _handle_ws_message(text: String) -> void:
 			var version = msg.get("restored_version", 0)
 			version_restored.emit(path, version)
 
+		"scene_update_ok", "scene_changed", "scene_save_default_ok", "scene_load_response":
+			# Scene configuration messages - forward to edit mode
+			scene_config_received.emit(msg)
+
 
 func disconnect_websocket() -> void:
 	if _websocket != null:
@@ -443,7 +448,8 @@ func _load_local_data() -> void:
 		player_phone = config.get_value("player", "phone", "")
 		recovery_code = config.get_value("player", "recovery_code", "")
 		session_token = config.get_value("player", "session_token", "")
-		print("[OnlineManager] Loaded local data: registered=%s, handle=%s" % [is_registered, player_handle])
+		var has_session = "yes" if not session_token.is_empty() else "no"
+		print("[OnlineManager] Loaded local data: registered=%s, handle=%s, has_session=%s" % [is_registered, player_handle, has_session])
 
 
 func _save_local_data() -> void:
@@ -518,17 +524,70 @@ func _set_online(online: bool) -> void:
 				disconnect_websocket()
 
 
+# ===== HANDLE CHECK =====
+
+signal handle_check_complete(available: bool, data: Dictionary)
+signal email_check_complete(available: bool, data: Dictionary)
+
+func check_handle_available(handle: String) -> void:
+	"""Check if a handle is available for registration"""
+	if not _current_request.is_empty():
+		print("[OnlineManager] Request already in progress")
+		return
+
+	if not is_online:
+		print("[OnlineManager] Cannot check handle: not online")
+		handle_check_complete.emit(false, {"error": "OFFLINE"})
+		return
+
+	_current_request = "check_handle"
+	var headers = ["Content-Type: application/json"]
+	var error = _http_request.request(server_url + "/player/" + handle.uri_encode(), headers, HTTPClient.METHOD_GET)
+
+	if error != OK:
+		print("[OnlineManager] Failed to check handle: ", error)
+		_current_request = ""
+		handle_check_complete.emit(false, {"error": "REQUEST_FAILED"})
+
+
+func check_email_available(email: String) -> void:
+	"""Check if an email is available for registration"""
+	if not _current_request.is_empty():
+		print("[OnlineManager] Request already in progress")
+		return
+
+	if not is_online:
+		print("[OnlineManager] Cannot check email: not online")
+		email_check_complete.emit(false, {"error": "OFFLINE"})
+		return
+
+	_current_request = "check_email"
+	var headers = ["Content-Type: application/json"]
+	var error = _http_request.request(server_url + "/email/" + email.uri_encode(), headers, HTTPClient.METHOD_GET)
+
+	if error != OK:
+		print("[OnlineManager] Failed to check email: ", error)
+		_current_request = ""
+		email_check_complete.emit(false, {"error": "REQUEST_FAILED"})
+
+
 # ===== REGISTRATION =====
 
-func register_player(handle: String) -> void:
+func register_player(handle: String, email: String = "") -> void:
 	"""Register a new player with the server"""
 	if not _current_request.is_empty():
 		print("[OnlineManager] Request already in progress")
 		return
 
+	if not is_online:
+		print("[OnlineManager] Cannot register: not online")
+		registration_complete.emit(false, {"error": "OFFLINE", "message": "Network connection required"})
+		return
+
 	_current_request = "register"
 	var body = JSON.stringify({
 		"handle": handle,
+		"email": email,
 		"browser_id": _get_browser_id()
 	})
 	var headers = ["Content-Type: application/json"]
@@ -646,6 +705,10 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 	match request_type:
 		"status":
 			_set_online(response_code == 200)
+		"check_handle":
+			_handle_check_handle_response(response_code, data)
+		"check_email":
+			_handle_check_email_response(response_code, data)
 		"register":
 			_handle_registration_response(response_code, data)
 		"recover":
@@ -666,12 +729,34 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 
 func _handle_request_error(request_type: String, error_data: Dictionary) -> void:
 	match request_type:
+		"check_handle":
+			handle_check_complete.emit(false, error_data)
+		"check_email":
+			email_check_complete.emit(false, error_data)
 		"register":
 			registration_complete.emit(false, error_data)
 		"recover":
 			recovery_complete.emit(false, error_data)
 		"sync":
 			sync_complete.emit(false)
+
+
+func _handle_check_handle_response(response_code: int, data: Dictionary) -> void:
+	if response_code == 404:
+		# Handle not found = available
+		handle_check_complete.emit(true, {"available": true})
+	else:
+		# Handle exists = taken
+		handle_check_complete.emit(false, {"available": false, "error": "HANDLE_TAKEN"})
+
+
+func _handle_check_email_response(response_code: int, data: Dictionary) -> void:
+	if response_code == 404:
+		# Email not found = available
+		email_check_complete.emit(true, {"available": true})
+	else:
+		# Email exists = taken
+		email_check_complete.emit(false, {"available": false, "error": "EMAIL_TAKEN"})
 
 
 func _handle_registration_response(response_code: int, data: Dictionary) -> void:

@@ -141,6 +141,17 @@ var _display_base: String = ""
 # Track all output text manually to avoid get_parsed_text() encoding issues
 var _output_text: String = ""
 
+# Handle/email check state (used during registration)
+var _handle_check_received: bool = false
+var _handle_check_available: bool = false
+var _email_check_received: bool = false
+var _email_check_available: bool = false
+
+# Registration state
+var _registration_received: bool = false
+var _registration_success: bool = false
+var _registration_data: Dictionary = {}
+
 # Signals
 signal command_entered(command: String)
 signal program_requested(program_name: String, args: Array)
@@ -296,12 +307,9 @@ func _first_boot_registration() -> void:
 	print_line("========================================")
 	print_line("     *** SHADOW NETWORK ACCESS ***")
 	print_line("========================================")
-	print_line("")
 	print_line("No local identity found.")
-	print_line("")
-	print_line(" [R] Register new modem")
-	print_line(" [C] Recover existing registration")
-	print_line("")
+	print_line("[R] Register new modem")
+	print_line("[C] Recover existing registration")
 
 	# Enable input for choice
 	is_ready = true
@@ -316,9 +324,7 @@ func _first_boot_registration() -> void:
 		var input = await _wait_for_registration_input()
 		choice = input.strip_edges().to_upper()
 		if choice != "R" and choice != "C":
-			print_line("")
 			print_line("Please enter R or C.")
-			print_line("")
 			_display_base = _output_text + "Choice: "
 			current_input = ""
 			_refresh_display()
@@ -333,9 +339,14 @@ func _first_boot_registration() -> void:
 
 func _first_boot_register() -> void:
 	"""Handle new modem registration"""
-	print_line("")
-	print_line("Enter a handle for your modem (3-12 chars).")
-	print_line("")
+	# Check network first
+	if not OnlineManager.is_online:
+		print_line("ERROR: Network connection required.")
+		await get_tree().create_timer(2.0).timeout
+		await _first_boot_registration()
+		return
+
+	print_line("Enter handle (3-12 chars).")
 
 	# Enable input for handle
 	is_ready = true
@@ -346,73 +357,151 @@ func _first_boot_register() -> void:
 	var handle = await _wait_for_registration_input()
 	is_ready = false
 
-	# Validate handle
+	# Validate handle length
 	if handle.length() < 3 or handle.length() > 12:
-		print_line("")
-		print_line("Invalid handle. Using offline mode.")
-		print_line("")
+		print_line("ERROR: Handle must be 3-12 characters.")
 		await get_tree().create_timer(1.0).timeout
-		OnlineManager.setup_offline_mode("GUEST")
+		await _first_boot_register()
+		return
+
+	# Check if handle is available BEFORE asking for email
+	_handle_check_received = false
+	_handle_check_available = false
+	OnlineManager.handle_check_complete.connect(_on_handle_check_complete, CONNECT_ONE_SHOT)
+	OnlineManager.check_handle_available(handle)
+
+	var check_start = Time.get_ticks_msec()
+	while not _handle_check_received and (Time.get_ticks_msec() - check_start) < 5000:
+		await get_tree().create_timer(0.1).timeout
+
+	if not _handle_check_received:
+		print_line("ERROR: Network timeout.")
+		await get_tree().create_timer(1.0).timeout
+		await _first_boot_register()
+		return
+
+	if not _handle_check_available:
+		print_line("ERROR: Handle '" + handle + "' already taken.")
+		await get_tree().create_timer(1.0).timeout
+		await _first_boot_register()
+		return
+
+	# Get email
+	print_line("Enter email (for recovery code).")
+
+	is_ready = true
+	_display_base = _output_text + "Email: "
+	current_input = ""
+	_refresh_display()
+
+	var email = await _wait_for_registration_input()
+	is_ready = false
+	email = email.strip_edges()
+
+	# Basic email validation
+	if not "@" in email or not "." in email or email.length() < 5:
+		print_line("ERROR: Invalid email address.")
+		await get_tree().create_timer(1.0).timeout
+		await _first_boot_register()
+		return
+
+	# Check if email is available
+	_email_check_received = false
+	_email_check_available = false
+	OnlineManager.email_check_complete.connect(_on_email_check_complete, CONNECT_ONE_SHOT)
+	OnlineManager.check_email_available(email)
+
+	var email_check_start = Time.get_ticks_msec()
+	while not _email_check_received and (Time.get_ticks_msec() - email_check_start) < 5000:
+		await get_tree().create_timer(0.1).timeout
+
+	if not _email_check_received:
+		print_line("ERROR: Network timeout.")
+		await get_tree().create_timer(1.0).timeout
+		await _first_boot_register()
+		return
+
+	if not _email_check_available:
+		print_line("ERROR: Email already registered.")
+		print_line("Use [C] Recover to restore account.")
+		await get_tree().create_timer(1.5).timeout
+		await _first_boot_registration()
 		return
 
 	# Try to register with server
-	print_line("")
-	print_line("Connecting to Shadow Network...")
+	print_line("Registering...")
 
-	OnlineManager.register_player(handle)
+	_registration_received = false
+	_registration_success = false
+	_registration_data = {}
+	OnlineManager.registration_complete.connect(_on_registration_complete, CONNECT_ONE_SHOT)
+	OnlineManager.register_player(handle, email)
 
 	# Wait for response with timeout
-	var timeout = 5.0
+	var timeout = 10.0
 	var start_time = Time.get_ticks_msec()
-	var result_received = false
-	var result_success = false
-	var result_data = {}
 
-	OnlineManager.registration_complete.connect(
-		func(success: bool, data: Dictionary):
-			result_received = true
-			result_success = success
-			result_data = data,
-		CONNECT_ONE_SHOT
-	)
-
-	while not result_received and (Time.get_ticks_msec() - start_time) < timeout * 1000:
+	while not _registration_received and (Time.get_ticks_msec() - start_time) < timeout * 1000:
 		await get_tree().create_timer(0.1).timeout
 
-	if result_received and result_success:
-		print_line("REGISTRATION SUCCESSFUL!")
-		print_line("")
+	if _registration_received and _registration_success:
+		print_line("REGISTERED!")
 		print_line("========================================")
-		print_line(" *** SAVE YOUR RECOVERY CODE ***")
+		print_line("Handle: " + OnlineManager.player_handle)
+		print_line("Phone:  " + OnlineManager.player_phone)
+		print_line("Code:   " + OnlineManager.recovery_code)
 		print_line("========================================")
-		print_line("")
-		print_line(" Handle: " + OnlineManager.player_handle)
-		print_line(" Phone:  " + OnlineManager.player_phone)
-		print_line(" Code:   " + OnlineManager.recovery_code)
-		print_line("")
-		print_line(" Use this code to restore your identity")
-		print_line(" on another computer.")
-		print_line("========================================")
-		print_line("")
-	elif result_received and not result_success:
-		var error = result_data.get("error", "UNKNOWN")
+		print_line("Recovery code emailed to: " + email)
+		print_line("Use SESSION RECOVER <code> to restore.")
+	elif _registration_received and not _registration_success:
+		var error = _registration_data.get("error", "UNKNOWN")
 		if error == "HANDLE_TAKEN":
-			print_line("ERROR: Handle already taken!")
+			print_line("ERROR: Handle already taken.")
+		elif error == "EMAIL_TAKEN":
+			print_line("ERROR: Email already registered.")
+		elif error == "INVALID_EMAIL":
+			print_line("ERROR: Invalid email address.")
 		else:
-			print_line("ERROR: " + result_data.get("message", "Registration failed"))
-		print_line("Using offline mode.")
-		print_line("")
-		await get_tree().create_timer(1.0).timeout
-		OnlineManager.setup_offline_mode(handle)
+			print_line("ERROR: " + _registration_data.get("message", "Registration failed"))
+		await get_tree().create_timer(1.5).timeout
+		await _first_boot_register()
 	else:
-		print_line("Network unreachable. Using offline mode.")
-		print_line("")
-		await get_tree().create_timer(1.0).timeout
-		OnlineManager.setup_offline_mode(handle)
+		print_line("ERROR: Network timeout.")
+		await get_tree().create_timer(1.5).timeout
+		await _first_boot_registration()
+
+
+func _on_handle_check_complete(available: bool, data: Dictionary) -> void:
+	"""Signal handler for handle availability check"""
+	_handle_check_received = true
+	_handle_check_available = available
+
+
+func _on_email_check_complete(available: bool, data: Dictionary) -> void:
+	"""Signal handler for email availability check"""
+	_email_check_received = true
+	_email_check_available = available
+
+
+func _on_registration_complete(success: bool, data: Dictionary) -> void:
+	"""Signal handler for registration"""
+	_registration_received = true
+	_registration_success = success
+	_registration_data = data
 
 
 func _first_boot_recovery() -> void:
 	"""Handle recovery of existing registration during boot"""
+	# Check network first
+	if not OnlineManager.is_online:
+		print_line("")
+		print_line("ERROR: Network connection required.")
+		print_line("Check connection and try again.")
+		print_line("")
+		await get_tree().create_timer(2.0).timeout
+		await _first_boot_registration()
+		return
+
 	print_line("")
 	print_line("Enter your recovery code.")
 	print_line("Example: SHADOW-7X9K-M2P1")
@@ -430,10 +519,10 @@ func _first_boot_recovery() -> void:
 
 	if code.is_empty():
 		print_line("")
-		print_line("No code entered. Using offline mode.")
+		print_line("No code entered.")
 		print_line("")
 		await get_tree().create_timer(1.0).timeout
-		OnlineManager.setup_offline_mode("GUEST")
+		await _first_boot_registration()
 		return
 
 	print_line("")
@@ -442,7 +531,7 @@ func _first_boot_recovery() -> void:
 	OnlineManager.recover_session(code)
 
 	# Wait for response with timeout
-	var timeout = 5.0
+	var timeout = 10.0
 	var start_time = Time.get_ticks_msec()
 	var result_received = false
 	var result_success = false
@@ -472,19 +561,20 @@ func _first_boot_recovery() -> void:
 		print_line("")
 	elif result_received:
 		var error = result_data.get("error", "UNKNOWN")
+		print_line("")
 		if error == "INVALID_CODE":
 			print_line("ERROR: Recovery code not found.")
 		else:
 			print_line("ERROR: " + result_data.get("message", "Recovery failed"))
-		print_line("Using offline mode.")
 		print_line("")
-		await get_tree().create_timer(1.0).timeout
-		OnlineManager.setup_offline_mode("GUEST")
+		await get_tree().create_timer(1.5).timeout
+		await _first_boot_registration()
 	else:
-		print_line("Network unreachable. Using offline mode.")
 		print_line("")
-		await get_tree().create_timer(1.0).timeout
-		OnlineManager.setup_offline_mode("GUEST")
+		print_line("ERROR: Network timeout.")
+		print_line("")
+		await get_tree().create_timer(1.5).timeout
+		await _first_boot_registration()
 
 
 var _awaiting_registration_input: bool = false
@@ -505,7 +595,9 @@ func _registration_handle_enter() -> void:
 	"""Called when enter is pressed during registration input"""
 	_registration_handle = current_input.strip_edges()
 	_awaiting_registration_input = false
-	print_line("")  # Move to next line after input
+	# Preserve the prompt and input in _output_text before moving on
+	_output_text = _display_base + current_input + "\n"
+	_update_display()
 
 
 func _show_prompt() -> void:

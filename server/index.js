@@ -12,7 +12,9 @@ const Database = require('better-sqlite3');
 const { initDatabase } = require('./db/init');
 const playersRouter = require('./routes/players');
 const filesystemRouter = require('./routes/filesystem');
+const sceneRouter = require('./routes/scene');
 const { initWebSocket, getTotalConnections } = require('./websocket');
+const { initEmailTransporter } = require('./utils/email');
 
 const app = express();
 const server = http.createServer(app);
@@ -24,6 +26,9 @@ console.log(`Database path: ${dbPath}`);
 
 const db = new Database(dbPath);
 initDatabase(db);
+
+// Initialize email transporter
+initEmailTransporter();
 
 // Add all CORS and COEP headers BEFORE other middleware
 app.use((req, res, next) => {
@@ -77,6 +82,7 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api', playersRouter);
 app.use('/api', filesystemRouter);
+app.use('/api', sceneRouter);
 
 // Health check / status endpoint
 app.get('/api/status', (req, res) => {

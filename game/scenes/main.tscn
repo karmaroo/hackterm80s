@@ -1,4 +1,4 @@
-[gd_scene load_steps=28 format=3]
+[gd_scene load_steps=29 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Shader" path="res://shaders/wood_grain.gdshader" id="14_woodgrain"]
@@ -14,6 +14,10 @@
 [ext_resource type="Script" path="res://scripts/lava_lamp.gd" id="12_lavalamp"]
 [ext_resource type="Script" path="res://scripts/phone_bulb_light.gd" id="13_bulblight"]
 [ext_resource type="Script" path="res://scripts/zoom_manager.gd" id="14_zoom"]
+[ext_resource type="Texture2D" path="res://assets/computer-and-keyboard-998989.png" id="15_computerandkeyboard"]
+[ext_resource type="Texture2D" path="res://assets/taped-note-67621.png" id="17_tapednote"]
+[ext_resource type="Texture2D" path="res://assets/monitor-676721.png" id="18_monitor"]
+[ext_resource type="Texture2D" path="res://assets/monitor-without-screen-99999.png" id="19_monitorframe"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_crt"]
 shader = ExtResource("3_crt")
@@ -87,6 +91,9 @@ corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_transparent"]
+bg_color = Color(1, 0, 0, 0.5)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_powerbutton"]
 bg_color = Color(0.22, 0.21, 0.19, 1)
@@ -462,6 +469,38 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 
+[node name="ComputerAndKeyboardImage" type="TextureRect" parent="ComputerFrame"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -560.0
+offset_top = -100.0
+offset_right = 560.0
+offset_bottom = 520.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("15_computerandkeyboard")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="BaseHDDLED" type="ColorRect" parent="ComputerFrame"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 170.0
+offset_top = 160.0
+offset_right = 182.0
+offset_bottom = 170.0
+mouse_filter = 2
+color = Color(0.15, 0.1, 0.05, 1)
+
 [node name="Monitor" type="Control" parent="ComputerFrame"]
 layout_mode = 1
 anchors_preset = 8
@@ -469,10 +508,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -370.0
-offset_top = -390.0
-offset_right = 370.0
-offset_bottom = 140.0
+offset_left = -333.0
+offset_top = -440.0
+offset_right = 347.0
+offset_bottom = 80.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -498,6 +537,7 @@ texture = SubResource("GradientTexture2D_walllight")
 texture_scale = 2.5
 
 [node name="MonitorBody" type="ColorRect" parent="ComputerFrame/Monitor"]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -505,6 +545,7 @@ anchor_bottom = 1.0
 color = Color(0.72, 0.66, 0.55, 1)
 
 [node name="MonitorTopEdge" type="ColorRect" parent="ComputerFrame/Monitor"]
+visible = false
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -513,6 +554,7 @@ grow_horizontal = 2
 color = Color(0.82, 0.76, 0.64, 1)
 
 [node name="MonitorBottomEdge" type="ColorRect" parent="ComputerFrame/Monitor"]
+visible = false
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -524,6 +566,7 @@ grow_vertical = 0
 color = Color(0.58, 0.52, 0.42, 1)
 
 [node name="MonitorLeftEdge" type="ColorRect" parent="ComputerFrame/Monitor"]
+visible = false
 layout_mode = 1
 anchors_preset = 9
 anchor_bottom = 1.0
@@ -532,12 +575,14 @@ grow_vertical = 2
 color = Color(0.68, 0.62, 0.52, 1)
 
 [node name="MonitorLeftHighlight" type="ColorRect" parent="ComputerFrame/Monitor"]
+visible = false
 layout_mode = 0
 offset_right = 3.0
 offset_bottom = 500.0
 color = Color(0.78, 0.72, 0.6, 1)
 
 [node name="MonitorRightEdge" type="ColorRect" parent="ComputerFrame/Monitor"]
+visible = false
 layout_mode = 1
 anchors_preset = 11
 anchor_left = 1.0
@@ -548,6 +593,7 @@ grow_vertical = 2
 color = Color(0.62, 0.56, 0.46, 1)
 
 [node name="MonitorRightShadow" type="ColorRect" parent="ComputerFrame/Monitor"]
+visible = false
 layout_mode = 1
 anchors_preset = 11
 anchor_left = 1.0
@@ -558,6 +604,7 @@ offset_right = 0.0
 color = Color(0.52, 0.46, 0.38, 1)
 
 [node name="TopVents" type="HBoxContainer" parent="ComputerFrame/Monitor"]
+visible = false
 layout_mode = 0
 offset_left = 189.0
 offset_top = 10.0
@@ -606,6 +653,7 @@ layout_mode = 2
 color = Color(0.55, 0.5, 0.42, 1)
 
 [node name="ScreenBezelOuter" type="ColorRect" parent="ComputerFrame/Monitor"]
+visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_right = 1.0
@@ -617,6 +665,7 @@ offset_bottom = -55.0
 color = Color(0.2, 0.18, 0.15, 1)
 
 [node name="ScreenBezelInner" type="ColorRect" parent="ComputerFrame/Monitor"]
+visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_right = 1.0
@@ -628,6 +677,7 @@ offset_bottom = -62.0
 color = Color(0.12, 0.11, 0.1, 1)
 
 [node name="ScreenArea" type="ColorRect" parent="ComputerFrame/Monitor"]
+visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_right = 1.0
@@ -637,6 +687,13 @@ offset_top = 38.0
 offset_right = -38.0
 offset_bottom = -68.0
 color = Color(0, 0.05, 0.02, 1)
+
+[node name="ScreenBackground" type="ColorRect" parent="ComputerFrame/Monitor"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.0, 0.02, 0.0, 1)
 
 [node name="TerminalView" type="SubViewportContainer" parent="ComputerFrame/Monitor"]
 texture_filter = 0
@@ -656,7 +713,7 @@ stretch = false
 [node name="SubViewport" type="SubViewport" parent="ComputerFrame/Monitor/TerminalView"]
 transparent_bg = true
 handle_input_locally = false
-size = Vector2i(3300, 2100)
+size = Vector2i(3000, 2050)
 render_target_update_mode = 4
 
 [node name="Terminal" type="Control" parent="ComputerFrame/Monitor/TerminalView/SubViewport"]
@@ -695,10 +752,10 @@ layout_mode = 1
 anchors_preset = -1
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 38.0
-offset_top = 38.0
-offset_right = -38.0
-offset_bottom = -68.0
+offset_left = 40.0
+offset_top = 40.0
+offset_right = -40.0
+offset_bottom = -70.0
 color = Color(0.015, 0.02, 0.015, 1)
 
 [node name="OffText" type="Label" parent="ComputerFrame/Monitor/ScreenOffOverlay"]
@@ -784,7 +841,55 @@ offset_right = 190.0
 offset_bottom = 38.0
 color = Color(0.35, 0.32, 0.28, 1)
 
+[node name="MonitorFrame" type="TextureRect" parent="ComputerFrame"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -420.0
+offset_top = -520.0
+offset_right = 420.0
+offset_bottom = 130.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("19_monitorframe")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="BasePowerButton" type="Panel" parent="ComputerFrame"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 140.0
+offset_top = 175.0
+offset_right = 190.0
+offset_bottom = 215.0
+mouse_filter = 0
+mouse_default_cursor_shape = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_transparent")
+
+[node name="BasePowerLED" type="ColorRect" parent="ComputerFrame"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 153.0
+offset_top = 160.0
+offset_right = 165.0
+offset_bottom = 170.0
+mouse_filter = 2
+color = Color(0.15, 0.1, 0.05, 1)
+
 [node name="BaseUnit" type="Control" parent="ComputerFrame"]
+visible = false
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -1269,6 +1374,7 @@ text = "ST-8088 TURBO"
 horizontal_alignment = 1
 
 [node name="Keyboard" type="Control" parent="ComputerFrame"]
+visible = false
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -3063,20 +3169,21 @@ text = "."
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="WargamesPoster" type="TextureRect" parent="."]
+[node name="TapedNote" type="TextureRect" parent="ComputerFrame"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = 520.0
-offset_top = -480.0
-offset_right = 950.0
-offset_bottom = 50.0
+offset_left = 500.0
+offset_top = -220.0
+offset_right = 570.0
+offset_bottom = -130.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("10_poster")
+mouse_filter = 2
+texture = ExtResource("17_tapednote")
 expand_mode = 1
 stretch_mode = 5
 
